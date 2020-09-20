@@ -1,0 +1,6 @@
+/.vs
+*.exe
+*.metagen
+*.pdb
+*.obj
+/OpenMesh_EX/Debug
