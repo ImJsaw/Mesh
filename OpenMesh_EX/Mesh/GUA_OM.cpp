@@ -1,4 +1,5 @@
 #include "GUA_OM.h"
+#include "MathUtils.h"
 
 namespace OMT {
 	/*======================================================================*/
@@ -476,7 +477,7 @@ void Tri_Mesh::Render_SolidWireframe() {
 	glPopAttrib();
 }
 
-void Tri_Mesh::Render_Wireframe() {
+void Tri_Mesh::Render_Wireframe(int index) {
 	//glPushAttrib(GL_LIGHTING_BIT);	
 	glDisable(GL_LIGHTING);
 	glLineWidth(1.0);
@@ -484,13 +485,14 @@ void Tri_Mesh::Render_Wireframe() {
 	glColor3f(0.0, 0.0, 0.0);
 
 	glBegin(GL_LINES);
+	/*
 	int i = 0;
 	for (OMT::EIter e_it = edges_begin(); e_it != edges_end(); ++e_it,i++) {
-/*
+
 		if (i % 2 == 0)
 			glColor3f(1.0, 0.0, 0.0);
 		else
-			glColor3f(0.0,0.0,0.0);*/
+			glColor3f(0.0,0.0,0.0);
 
 		OMT::HEHandle _hedge = halfedge_handle(e_it.handle(), 1);
 
@@ -500,8 +502,19 @@ void Tri_Mesh::Render_Wireframe() {
 		curVertex = point(to_vertex_handle(_hedge));
 		glVertex3dv(curVertex.data());
 	}
-	glEnd();
+	*/
+	glColor3f(1.0, 0.0, 0.0);
+	FEIter fe_it;
+	for (fe_it = fe_iter(face_handle(index)); fe_it; ++fe_it) {
+		OMT::HEHandle _hedge = halfedge_handle(fe_it.handle(), 1);
 
+		OMT::Point curVertex = point(from_vertex_handle(_hedge));
+		glVertex3dv(curVertex.data());
+
+		curVertex = point(to_vertex_handle(_hedge));
+		glVertex3dv(curVertex.data());
+	}
+	glEnd();
 }
 
 void Tri_Mesh::Render_Point() {
@@ -518,26 +531,26 @@ double dotDis(double x1, double x2, double y1, double y2, double z1, double z2) 
 	return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2));
 }
 
-int Tri_Mesh::findNearestFace(double px, double py,double pz) {
-	double dis = 999;
-	int index =- 1;
-	FVIter	fv_it;
+int Tri_Mesh::findNearestFace(double px, double py, double pz) {
+	int index = -1;
+	FVIter fv_it;
+	Point p = Point(px, py, pz);
 	int i = 0;
 	for (OMT::FIter f_it = faces_begin(); f_it != faces_end(); ++f_it,i++) {
-		double x = 0, y = 0, z = 0;
-		for (fv_it = fv_iter(f_it); fv_it; ++fv_it) {
-			x += (point(fv_it.handle())[0])/3;
-			y += (point(fv_it.handle())[1])/3;
-			z += (point(fv_it.handle())[2])/3;
+		Point v[3];
+		int j = 0;
+		for (fv_it = fv_iter(f_it); fv_it; ++fv_it, j++) {
+			v[j] = point(fv_it.handle());
 		}
 
-		if (dotDis(px, x, py, y, pz, z) < dis) {
-			dis = dotDis(px, x, py, y, pz, z);
+		if (InTriangle(v[0], v[1], v[2], p))
+		{
 			index = i;
+			break;
 		}
-
 		
 	}
+	
 	return index;
 }
 

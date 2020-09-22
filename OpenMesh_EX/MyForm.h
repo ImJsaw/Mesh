@@ -11,6 +11,7 @@ GLCamera camera;
 float fov = 0.7f;
 
 point dp;
+point pp;
 
 static const Mouse::button physical_to_logical_map[] = {
 	Mouse::NONE, Mouse::ROTATE, Mouse::MOVEXY, Mouse::MOVEZ,
@@ -187,22 +188,18 @@ namespace OpenMesh_EX {
 		glMultMatrixd((double *)xf);
 		if (mesh != NULL) {
 			mesh->Render_Solid();
-			mesh->Render_Wireframe();
-			
-			
+			mesh->Render_Wireframe(index);
+	
 			glPointSize(8.0);
 			glColor3f(1.0, 0.0, 0.0);
 			glBegin(GL_POINTS);
-			glVertex3d(dp[0],dp[1],dp[2]);
+			glVertex3d(pp[0],pp[1],pp[2]);
 			glEnd();
-			/*
-			mesh->Render_Point();
-			mesh->Render_SolidWireframe();
-			*/
-			
 		}
 		glPopMatrix();
 	}
+
+	int index = 0;
 	private: System::Void hkoglPanelControl1_MouseDown(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
 		if (e->Button == System::Windows::Forms::MouseButtons::Left ||
 			e->Button == System::Windows::Forms::MouseButtons::Middle) {
@@ -232,10 +229,12 @@ namespace OpenMesh_EX {
 				gluUnProject(e->X, hkoglPanelControl1->Height - e->Y, dep, M, P, V, &X, &Y, &Z);
 				dp = point((float)X, (float)Y, (float)Z);
 				cout << dp[0] << dp[1] << dp[2] << endl;
-				cout << "near : " << mesh->findNearestFace(dp[0], dp[1], dp[2]) << endl;
-			}
-			
 
+				// convert to local space
+				pp = inv(xf) * dp;
+				index = mesh->findNearestFace(pp[0], pp[1], pp[2]);
+				cout << "near : " << index << endl;
+			}
 		}
 	}
 	private: System::Void hkoglPanelControl1_MouseMove(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
