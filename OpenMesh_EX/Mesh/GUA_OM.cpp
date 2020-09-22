@@ -484,7 +484,14 @@ void Tri_Mesh::Render_Wireframe() {
 	glColor3f(0.0, 0.0, 0.0);
 
 	glBegin(GL_LINES);
-	for (OMT::EIter e_it = edges_begin(); e_it != edges_end(); ++e_it) {
+	int i = 0;
+	for (OMT::EIter e_it = edges_begin(); e_it != edges_end(); ++e_it,i++) {
+/*
+		if (i % 2 == 0)
+			glColor3f(1.0, 0.0, 0.0);
+		else
+			glColor3f(0.0,0.0,0.0);*/
+
 		OMT::HEHandle _hedge = halfedge_handle(e_it.handle(), 1);
 
 		OMT::Point curVertex = point(from_vertex_handle(_hedge));
@@ -507,6 +514,36 @@ void Tri_Mesh::Render_Point() {
 	glEnd();
 }
 
+double dotDis(double x1, double x2, double y1, double y2, double z1, double z2) {
+	return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2));
+}
+
+int Tri_Mesh::findNearestFace(double px, double py,double pz) {
+	double dis = 999;
+	int index =- 1;
+	FVIter	fv_it;
+	int i = 0;
+	for (OMT::FIter f_it = faces_begin(); f_it != faces_end(); ++f_it,i++) {
+		double x = 0, y = 0, z = 0;
+		for (fv_it = fv_iter(f_it); fv_it; ++fv_it) {
+			x += (point(fv_it.handle())[0])/3;
+			y += (point(fv_it.handle())[1])/3;
+			z += (point(fv_it.handle())[2])/3;
+		}
+
+		if (dotDis(px, x, py, y, pz, z) < dis) {
+			dis = dotDis(px, x, py, y, pz, z);
+			index = i;
+		}
+
+		
+	}
+	return index;
+}
+
+
+
+//called when read file in GUI
 bool ReadFile(std::string _fileName, Tri_Mesh *_mesh) {
 	bool isRead = false;
 	OpenMesh::IO::Options opt;
@@ -523,6 +560,7 @@ bool ReadFile(std::string _fileName, Tri_Mesh *_mesh) {
 	return isRead;
 }
 
+//called when save file in GUI
 bool SaveFile(std::string _fileName, Tri_Mesh *_mesh) {
 	bool isSave = false;
 	if (OpenMesh::IO::write_mesh(*_mesh, _fileName)) {

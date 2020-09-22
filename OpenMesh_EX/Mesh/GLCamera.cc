@@ -53,12 +53,14 @@ bool GLCamera::read_depth(int x, int y, point &p) const {
 	const int displacements = sizeof(dx) / sizeof(float);
 
 	int xmin = V[0], xmax = V[0] + V[2] - 1, ymin = V[1], ymax = V[1] + V[3] - 1;
-
+	//std::cout << "xmin" << xmin << ",xmax" << xmax << ",ymin" << ymin << ",ymax" << ymax << std::endl;
+	
 	for (int i = 0; i < displacements; i++) {
 		int xx = min(max(x + int(dx[i] * scale*V[2]), xmin), xmax);
 		int yy = min(max(y + int(dy[i] * scale*V[3]), ymin), ymax);
 		float d;
 		glReadPixels(xx, yy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &d);
+		//std::cout << "xx" << xx << ",yy" << yy  << std::endl;
 
 		static float maxd = 0.0f;
 		if (!maxd) {

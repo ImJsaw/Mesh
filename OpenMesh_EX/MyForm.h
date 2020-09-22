@@ -10,6 +10,8 @@ xform xf;
 GLCamera camera;
 float fov = 0.7f;
 
+point dp;
+
 static const Mouse::button physical_to_logical_map[] = {
 	Mouse::NONE, Mouse::ROTATE, Mouse::MOVEXY, Mouse::MOVEZ,
 	Mouse::MOVEZ, Mouse::MOVEXY, Mouse::MOVEXY, Mouse::MOVEXY,
@@ -163,7 +165,10 @@ namespace OpenMesh_EX {
 
 		}
 #pragma endregion
+
+		//called before GUI first show
 	private: System::Void hkoglPanelControl1_Load(System::Object^  sender, System::EventArgs^  e) {
+		
 
 	}
 	private: System::Void hkoglPanelControl1_Paint(System::Object^  sender, System::Windows::Forms::PaintEventArgs^  e) {
@@ -180,13 +185,28 @@ namespace OpenMesh_EX {
 		glPushMatrix();
 		glMatrixMode(GL_MODELVIEW);
 		glMultMatrixd((double *)xf);
-		if (mesh != NULL)
+		if (mesh != NULL) {
+			mesh->Render_Solid();
+			mesh->Render_Wireframe();
+			
+			
+			glPointSize(8.0);
+			glColor3f(1.0, 0.0, 0.0);
+			glBegin(GL_POINTS);
+			glVertex3d(dp[0],dp[1],dp[2]);
+			glEnd();
+			/*
+			mesh->Render_Point();
 			mesh->Render_SolidWireframe();
+			*/
+			
+		}
 		glPopMatrix();
 	}
 	private: System::Void hkoglPanelControl1_MouseDown(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
 		if (e->Button == System::Windows::Forms::MouseButtons::Left ||
 			e->Button == System::Windows::Forms::MouseButtons::Middle) {
+			cout << "click X : " << e->X << ",Y : " << e->Y << endl;
 			point center;
 			Mouse_State = Mouse::NONE;
 			center[0] = 0.0;
@@ -195,6 +215,27 @@ namespace OpenMesh_EX {
 			camera.mouse(e->X, e->Y, Mouse_State,
 				xf * center,
 				1.0, xf);
+			//try depth
+			dp[0] = 0.0;
+			dp[1] = 0.0;
+			dp[2] = 0.0;
+			float dep;
+			glReadPixels(e->X, hkoglPanelControl1->Height - e->Y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &dep);
+			cout << dep << endl;
+			//get obj pos from mouse
+			if (dep > 0.0001f && dep < 0.9999f) {
+				GLdouble X, Y, Z;
+				GLdouble M[16], P[16]; GLint V[4];
+				glGetDoublev(GL_MODELVIEW_MATRIX, M);
+				glGetDoublev(GL_PROJECTION_MATRIX, P);
+				glGetIntegerv(GL_VIEWPORT, V);
+				gluUnProject(e->X, hkoglPanelControl1->Height - e->Y, dep, M, P, V, &X, &Y, &Z);
+				dp = point((float)X, (float)Y, (float)Z);
+				cout << dp[0] << dp[1] << dp[2] << endl;
+				cout << "near : " << mesh->findNearestFace(dp[0], dp[1], dp[2]) << endl;
+			}
+			
+
 		}
 	}
 	private: System::Void hkoglPanelControl1_MouseMove(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {

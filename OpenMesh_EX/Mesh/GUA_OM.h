@@ -227,7 +227,7 @@ public:
 	void Render_SolidWireframe();
 	void Render_Wireframe();
 	void Render_Point();
-
+	int findNearestFace(double x, double y, double z);
 private:
 };
 
