@@ -1,0 +1,8 @@
+/.vs
+*.exe
+*.metagen
+*.pdb
+*.obj
+/OpenMesh_EX/Debug
+/OpenMesh_EX/Release
+/cut perfect
