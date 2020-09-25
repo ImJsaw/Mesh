@@ -476,15 +476,18 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, 
 	//to buffer , then shader
 	FIter f_it;
 	FVIter	fv_it;
-	//face = 0;
-	std::cout << "mesh support : " << std::endl;
+	out_vertices.clear();
+	face = 0;
+	/*std::cout << "mesh support : " << std::endl;
 	std::cout << "  " << "texcoords" << ": " << ((_mesh.has_vertex_texcoords1D()) ? "yes\n" : "no\n") << std::endl;
 	std::cout << "  " << "texcoords" << ": " << ((_mesh.has_vertex_texcoords2D()) ? "yes\n" : "no\n") << std::endl;
 	std::cout << "  " << "texcoords" << ": " << ((_mesh.has_vertex_texcoords3D()) ? "yes\n" : "no\n") << std::endl;
-	std::cout << "  " << "normal" << ": " << ((_mesh.has_vertex_normals()) ? "yes\n" : "no\n") << std::endl;
+	std::cout << "  " << "normal" << ": " << ((_mesh.has_vertex_normals()) ? "yes\n" : "no\n") << std::endl;*/
 	for (f_it = faces_begin(); f_it != faces_end(); ++f_it) {
 		face++;
-		for (fv_it = fv_iter(f_it); fv_it; ++fv_it) { // 每個面有三個點
+		fv_it = fv_iter(f_it);
+		//force 3vert or infinite loop??
+		for (int i =0; i<3; i++,++fv_it) {
 			// 每個點有三個vertexes
 			out_vertices.push_back(*(point(fv_it.handle()).data()));
 			out_vertices.push_back(*(point(fv_it.handle()).data() + 1));
@@ -495,6 +498,26 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, 
 			//std::cout << "s = " << _mesh.texcoord2D(fv_it.handle())[0] << " t = " << _mesh.texcoord2D(fv_it.handle())[0] << std::endl;
 		}
 	}
+}
+
+void Tri_Mesh::delVert(VHandle vhandle) {
+	std::vector<VHandle> neighborVert = std::vector<VHandle>();
+	VVIter vv_it;
+	//find one ring
+	for (vv_it = ++vv_iter(vhandle); vv_it; ++vv_it) {
+		neighborVert.push_back(vv_it);
+		cout << point(vv_it.handle()) << endl;
+	}
+	//delete
+	delete_vertex(vhandle);
+	//repair
+	cout << "should add" << neighborVert.size() - 2 << "face" << endl;
+	for (int index = 1; index < neighborVert.size()-1; index++) {
+		cout << "add." << endl;
+		//important.  clockwise or get complex edge error
+		add_face(neighborVert[0],neighborVert[index+1], neighborVert[index]);
+	}
+	return;
 }
 
 //find choosed vert via choosed face
@@ -527,6 +550,9 @@ void Tri_Mesh::findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int fac
 		}
 	}
 	for (int i = 0; i < 3 && isFaceMatch; i++) vertex.push_back(point(min)[i]);
+
+	delVert(min);
+
 	//if (isFaceMatch) printf("selected point is : %f %f %f\n", vertex[0], vertex[1], vertex[2]);
 }
 

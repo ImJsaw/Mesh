@@ -237,6 +237,7 @@ public:
 	void loadToBufferPatch(std::vector<double> & out_vertices, int & face, std::vector<int> selected, Tri_Mesh & patch);
 	void findNearestPoint(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex);
 	void findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex , mat4 MVP , double dis);
+	void delVert(VHandle vhandle);
 
 	//-------Edit Flag-------//
     bool                                       Delete_Flag;

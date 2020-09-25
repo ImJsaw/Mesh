@@ -645,10 +645,18 @@ namespace OpenMesh_EX {
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 			glReadPixels(e->X, hkoglPanelControl1->Height - e->Y, 1, 1, GL_RGBA, GL_FLOAT, &pixel);
 			cout << "face id : " << pixel.r << endl;
+			if (pixel.r > 0) {
+				selectedVertices.clear();
+				mesh->findNearestVert(*mesh, mousePosition, pixel.r - 1, selectedVertices, MVP, eyedistance);
+				//update mesh
+				
+				mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
+				std::cout << "meshUV.size() : " << meshUV[objptr].size() << "vertices.size()" << vertices[objptr].size() << endl;
+				std::cout << "face" << face[objptr] << std::endl;
+			}
 
-			selectedVertices.clear();
-			mesh->findNearestVert(*mesh, mousePosition, pixel.r - 1, selectedVertices, MVP, eyedistance);
 
+			/*
 			//printf("mouse x = %d mouse y = %d\n", e->X, hkoglPanelControl1->Height - e->Y);
 			if (isLoad) {
 				//detect same face already stored
@@ -669,6 +677,7 @@ namespace OpenMesh_EX {
 				cout << endl;
 				//cout << endl << "selected face count : " << facesid2.size() << endl;
 			}
+			*/
 			glReadBuffer(GL_NONE);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
@@ -741,9 +750,9 @@ namespace OpenMesh_EX {
 		if (ReadFile(filename, mesh)) std::cout << filename << std::endl;
 		isLoad = true;
 
-		mesh->loadToBuffer(*mesh, vertices[objptr], face[objptr], meshUV[objptr]);
-		std::cout << "meshUV.size() : " << meshUV[objptr].size() << "vertices.size()" << vertices[objptr].size() << endl;
-		std::cout << "face" << face[objptr] << std::endl;
+		mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
+		std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
+		std::cout << "face" << face[0] << std::endl;
 		objptr++;
 		hkoglPanelControl1->Invalidate();
 	}
