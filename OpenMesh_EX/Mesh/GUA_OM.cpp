@@ -502,21 +502,24 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, 
 
 void Tri_Mesh::delVert(VHandle vhandle) {
 	std::vector<VHandle> neighborVert = std::vector<VHandle>();
-	VVIter vv_it;
+	VVCWIter vv_it;
 	//find one ring
-	for (vv_it = ++vv_iter(vhandle); vv_it; ++vv_it) {
-		neighborVert.push_back(vv_it);
-		cout << point(vv_it.handle()) << endl;
+	for (vv_it = vv_cwiter(vhandle); vv_it.is_valid(); ++vv_it) {
+		neighborVert.push_back(*vv_it);
+		cout << point(*vv_it) << endl;
 	}
 	//delete
 	delete_vertex(vhandle);
 	//repair
-	cout << "should add" << neighborVert.size() - 2 << "face" << endl;
+	cout << "should add " << neighborVert.size() - 2 << " face" << endl;
+	
 	for (int index = 1; index < neighborVert.size()-1; index++) {
 		cout << "add." << endl;
 		//important.  clockwise or get complex edge error
 		add_face(neighborVert[0],neighborVert[index+1], neighborVert[index]);
 	}
+	
+	garbage_collection();
 	return;
 }
 
@@ -550,9 +553,7 @@ void Tri_Mesh::findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int fac
 		}
 	}
 	for (int i = 0; i < 3 && isFaceMatch; i++) vertex.push_back(point(min)[i]);
-
 	delVert(min);
-
 	//if (isFaceMatch) printf("selected point is : %f %f %f\n", vertex[0], vertex[1], vertex[2]);
 }
 
