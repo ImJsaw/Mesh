@@ -925,3 +925,138 @@ void Tri_Mesh::loadToBufferPatch(std::vector<double> & out_vertices, int & face,
 	}
 }
 
+Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
+	Tri_Mesh simplified = Tri_Mesh(*this);
+	OpenMesh::EPropHandleT<float> cost;
+	OpenMesh::VPropHandleT<mat4x4> QMat;
+	OpenMesh::EPropHandleT<Point> newPoint;
+	simplified.add_property(cost);
+	simplified.add_property(QMat);
+	simplified.add_property(newPoint);
+
+	auto update_edge = [&](EdgeHandle& eh) {
+		VertexHandle to = to_vertex_handle(halfedge_handle(eh, 0));
+		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
+
+		mat4x4 newQ = simplified.property(QMat, to) + simplified.property(QMat, from);
+		mat4x4 m = mat4x4(newQ);
+		m[3][0] = 0;
+		m[3][1] = 0;
+		m[3][2] = 0;
+		m[3][3] = 1;
+		// check invertible??
+		vec4 newV = m._inverse() * vec4(0, 0, 0, 1);
+		Point newP = Point(newV.x, newV.y, newV.z);
+
+		auto cur_cost = (newV * newQ * newV)[0];
+		simplified.property(cost, eh) = cur_cost;
+		simplified.property(newPoint, eh) = newP;
+	};
+
+	VIter v_it;
+	EIter e_it;
+	int vertexCount;
+
+	// calculate the Q matrix for all vertices
+	for (vertexCount = 0, v_it = simplified.vertices_begin(); v_it != simplified.vertices_end(); ++v_it, vertexCount++) {
+		mat4x4 q = calculateQ(point(v_it.handle()));
+		simplified.property(QMat, *v_it) = q;
+	}
+
+	struct CompareCost {
+		Tri_Mesh* mesh;
+		OpenMesh::EPropHandleT<float>* cost;
+
+		CompareCost(Tri_Mesh* _mesh, OpenMesh::EPropHandleT<float>* _cost) {
+			mesh = _mesh;
+			cost = _cost;
+		}
+
+		bool operator()(EdgeHandle& p1, EdgeHandle& p2)
+		{
+			return mesh->property(*cost, p1) > mesh->property(*cost, p2);
+		}
+	};
+
+	CompareCost compare = CompareCost(&simplified, &cost);
+	_priority_queue<EdgeHandle&, vector<EdgeHandle&>, CompareCost> pq(compare);
+
+	if (threshold == 0) {
+		for (e_it = simplified.edges_begin(); e_it != simplified.edges_end(); ++e_it) {
+			update_edge(e_it.handle());
+			pq.push(e_it.handle());
+		}
+	}
+
+	// collapse the edge with smallest cost
+	// if the connected vertices form a concave polygon, ignore this edge
+	// repeat until the vertex number is lower than the target number
+	int targetVertexCount = vertexCount * rate;
+	while (vertexCount > targetVertexCount) {
+		EdgeHandle eh = pq.top();
+		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
+		VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));
+		
+		pq.pop();
+		
+		if (is_collapse_ok(halfedge_handle(eh, 0))) {
+			// remove connected edges in pq
+			VertexEdgeIter ve_it = simplified.ve_iter(from);
+			for (; ve_it.is_valid(); ++ve_it) {
+				pq.remove(*ve_it);
+			}
+			ve_it = simplified.ve_iter(remain);
+			for (; ve_it.is_valid(); ++ve_it) {
+				pq.remove(*ve_it);
+			}
+
+			// collapse
+			simplified.collapse(halfedge_handle(eh, 0));
+
+			// update the cost of connected edges and push them back to the pq
+			ve_it = simplified.ve_iter(remain);
+			for (; ve_it.is_valid(); ++ve_it) {
+				update_edge(ve_it.handle());
+				pq.push(*ve_it);
+			}
+
+			vertexCount--;
+		}
+
+	}
+
+	simplified.garbage_collection();
+	return simplified;
+}
+
+mat4x4 Tri_Mesh::calculateQ(const Point& p) {
+	float a = p[0];
+	float b = p[1];
+	float c = p[2];
+	float d = 1;
+	
+	mat4x4 q;
+	q[0][0] = a * a;
+	q[0][1] = a * b;
+	q[0][2] = a * c;
+	q[0][3] = a * d;
+
+	q[1][0] = a * b;
+	q[1][1] = b * b;
+	q[1][2] = b * c;
+	q[1][3] = b * d;
+
+	q[2][0] = a * c;
+	q[2][1] = c * b;
+	q[2][2] = c * c;
+	q[2][3] = c * d;
+
+	q[3][0] = a * d;
+	q[3][1] = d * b;
+	q[3][2] = d * c;
+	q[3][3] = d * d;
+
+	return q;
+}
+
+

@@ -19,6 +19,8 @@ using namespace std;
 
 
 #include <Eigen/Sparse>
+#include <queue>
+#include <../OpenMesh_EX/Mesh/CustomUtils.h>
 using namespace Eigen;
 
 
@@ -238,6 +240,8 @@ public:
 	void findNearestPoint(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex);
 	void findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex , mat4 MVP , double dis);
 	void delVert(VHandle vhandle);
+	mat4x4 calculateQ(const Point& p);
+	Tri_Mesh simplify(float rate, float threshold = 0);
 
 	//-------Edit Flag-------//
     bool                                       Delete_Flag;
