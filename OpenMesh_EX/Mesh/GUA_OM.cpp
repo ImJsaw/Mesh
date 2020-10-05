@@ -972,19 +972,19 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			cost = _cost;
 		}
 
-		bool operator()(EdgeHandle& p1, EdgeHandle& p2)
+		bool operator()(EdgeHandle* p1, EdgeHandle* p2)
 		{
-			return mesh->property(*cost, p1) > mesh->property(*cost, p2);
+			return mesh->property(*cost, *p1) > mesh->property(*cost, *p2);
 		}
 	};
 
 	CompareCost compare = CompareCost(&simplified, &cost);
-	_priority_queue<EdgeHandle&, vector<EdgeHandle&>, CompareCost> pq(compare);
+	_priority_queue<EdgeHandle*, vector<EdgeHandle*>, CompareCost> pq(compare);
 
 	if (threshold == 0) {
 		for (e_it = simplified.edges_begin(); e_it != simplified.edges_end(); ++e_it) {
 			update_edge(e_it.handle());
-			pq.push(e_it.handle());
+			pq.push(&e_it.handle());
 		}
 	}
 
@@ -993,21 +993,21 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	// repeat until the vertex number is lower than the target number
 	int targetVertexCount = vertexCount * rate;
 	while (vertexCount > targetVertexCount) {
-		EdgeHandle eh = pq.top();
+		EdgeHandle eh = *pq.top();
 		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 		VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));
 		
 		pq.pop();
 		
-		if (is_collapse_ok(halfedge_handle(eh, 0))) {
+		//if (is_collapse_ok(halfedge_handle(eh, 0))) {
 			// remove connected edges in pq
 			VertexEdgeIter ve_it = simplified.ve_iter(from);
 			for (; ve_it.is_valid(); ++ve_it) {
-				pq.remove(*ve_it);
+				pq.remove(&*ve_it);
 			}
 			ve_it = simplified.ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
-				pq.remove(*ve_it);
+				pq.remove(&*ve_it);
 			}
 
 			// collapse
@@ -1017,11 +1017,11 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			ve_it = simplified.ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
 				update_edge(ve_it.handle());
-				pq.push(*ve_it);
+				pq.push(&*ve_it);
 			}
 
 			vertexCount--;
-		}
+		//}
 
 	}
 

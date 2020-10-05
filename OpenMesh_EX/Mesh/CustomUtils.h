@@ -9,10 +9,8 @@ template<typename T,
 		typename Sequence = std::vector<T>,
 		typename Compare = std::less<typename Sequence::value_type> >
 class _priority_queue : public priority_queue<T, Sequence, Compare> {
+	using priority_queue::priority_queue;
 public:
-	_priority_queue(const _Pr& _Pred) {
-		this->comp = _Pred;
-	}
 	bool remove(const T& value) {
 		auto it = std::find(this->c.begin(), this->c.end(), value);
 		if (it != this->c.end()) {
