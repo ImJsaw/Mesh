@@ -999,7 +999,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		
 		pq.pop();
 		
-		//if (is_collapse_ok(halfedge_handle(eh, 0))) {
+		if (is_collapse_ok(halfedge_handle(eh, 0))) {
 			// remove connected edges in pq
 			VertexEdgeIter ve_it = simplified.ve_iter(from);
 			for (; ve_it.is_valid(); ++ve_it) {
@@ -1021,7 +1021,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			}
 
 			vertexCount--;
-		//}
+		}
 
 	}
 
