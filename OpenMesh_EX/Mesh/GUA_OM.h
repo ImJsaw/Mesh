@@ -240,8 +240,10 @@ public:
 	void findNearestPoint(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex);
 	void findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex , mat4 MVP , double dis);
 	void delVert(VHandle vhandle);
+	void oneRingCollapse(VHandle vhandle);
 	mat4x4 calculateQ(const Point& p);
 	Tri_Mesh simplify(float rate, float threshold = 0);
+	Tri_Mesh averageSimplify();
 
 	//-------Edit Flag-------//
     bool                                       Delete_Flag;

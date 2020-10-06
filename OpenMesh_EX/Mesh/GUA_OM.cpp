@@ -487,7 +487,7 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, 
 		face++;
 		fv_it = fv_iter(f_it);
 		//force 3vert or infinite loop??
-		for (int i =0; i<3; i++,++fv_it) {
+		for (int i = 0; i < 3; i++, ++fv_it) {
 			// 每個點有三個vertexes
 			out_vertices.push_back(*(point(fv_it.handle()).data()));
 			out_vertices.push_back(*(point(fv_it.handle()).data() + 1));
@@ -512,13 +512,13 @@ void Tri_Mesh::delVert(VHandle vhandle) {
 	delete_vertex(vhandle);
 	//repair
 	cout << "should add " << neighborVert.size() - 2 << " face" << endl;
-	
-	for (int index = 1; index < neighborVert.size()-1; index++) {
+
+	for (int index = 1; index < neighborVert.size() - 1; index++) {
 		cout << "add." << endl;
 		//important.  clockwise or get complex edge error
-		add_face(neighborVert[0],neighborVert[index+1], neighborVert[index]);
+		add_face(neighborVert[0], neighborVert[index + 1], neighborVert[index]);
 	}
-	
+
 	garbage_collection();
 	return;
 }
@@ -553,7 +553,10 @@ void Tri_Mesh::findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int fac
 		}
 	}
 	for (int i = 0; i < 3 && isFaceMatch; i++) vertex.push_back(point(min)[i]);
-	delVert(min);
+	
+	//delVert(min);
+	oneRingCollapse(min);
+
 	//if (isFaceMatch) printf("selected point is : %f %f %f\n", vertex[0], vertex[1], vertex[2]);
 }
 
@@ -972,17 +975,18 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			cost = _cost;
 		}
 
-		bool operator()(EdgeHandle* p1, EdgeHandle* p2)
-		{
+		bool operator()(EdgeHandle* p1, EdgeHandle* p2) {
 			return mesh->property(*cost, *p1) > mesh->property(*cost, *p2);
 		}
 	};
 
 	CompareCost compare = CompareCost(&simplified, &cost);
-	_priority_queue<EdgeHandle*, vector<EdgeHandle*>, CompareCost> pq(compare);
+	_priority_queue<EdgeHandle*, std::vector<EdgeHandle*>, CompareCost> pq(compare);
 
 	if (threshold == 0) {
 		for (e_it = simplified.edges_begin(); e_it != simplified.edges_end(); ++e_it) {
+
+			//cout << "push." << endl;
 			update_edge(e_it.handle());
 			pq.push(&e_it.handle());
 		}
@@ -993,12 +997,18 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	// repeat until the vertex number is lower than the target number
 	int targetVertexCount = vertexCount * rate;
 	while (vertexCount > targetVertexCount) {
+		if (pq.empty()) {
+			cout << pq.size() << endl;
+			cout << "empty pq !" << endl;
+			std::vector<EdgeHandle*> test = std::vector<EdgeHandle*>();
+			cout << typeid(test).name() << endl;
+		}
 		EdgeHandle eh = *pq.top();
 		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 		VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));
-		
+
 		pq.pop();
-		
+
 		if (is_collapse_ok(halfedge_handle(eh, 0))) {
 			// remove connected edges in pq
 			VertexEdgeIter ve_it = simplified.ve_iter(from);
@@ -1029,12 +1039,65 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	return simplified;
 }
 
+Tri_Mesh Tri_Mesh::averageSimplify() {
+	Tri_Mesh simplified = Tri_Mesh(*this);
+	//only update once
+	OpenMesh::VPropHandleT<bool> updated;
+	simplified.add_property(updated);
+
+	VIter v_it;
+	EIter e_it;
+	int vertexCount;
+	// label all vert not updated
+	for (vertexCount = 0, v_it = simplified.vertices_begin(); v_it != simplified.vertices_end(); ++v_it, vertexCount++) {
+		simplified.property(updated, *v_it) = false;
+	}
+	for (vertexCount = 0, v_it = simplified.vertices_begin(); v_it != simplified.vertices_end(); ++v_it, vertexCount++) {
+		if (simplified.property(updated, *v_it)) continue;
+		cout << "simplify." << endl;
+		VHandle pickedVert = v_it.handle();
+		simplified.property(updated, *v_it) = true;
+		/*
+		float newVertX = point(pickedVert)[0];
+		float newVertY = point(pickedVert)[1];
+		float newVertZ = point(pickedVert)[2];
+		int clusterCount = 1;
+		std::vector<VHandle> clusterVert = std::vector<VHandle>();
+		*/
+		oneRingCollapse(pickedVert);
+	}
+	cout << "simplify complete" << endl;
+	simplified.garbage_collection();
+	return simplified;
+}
+
+void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
+	vector<HHandle> edges = vector<HHandle>();
+	VIHIter vv_it;
+	//find one ring
+	for (vv_it = vih_iter(vhandle); vv_it; ++vv_it) {
+		cout << "collect." << endl;
+		edges.push_back(vv_it.handle());
+	}
+	//collapse one ring
+	if (edges.size() > 0) {
+		for (size_t i = 0; i <= edges.size() - 1; i++) {
+			if (i >= edges.size() || i < 0) { cout << "out of bound" << endl; break; }
+			//if (!edges[i].is_valid) { cout << "unvalid edge" << endl; break; }
+			cout << i << "collapse." << endl;
+			collapse(edges[i]);
+		}
+	}
+	garbage_collection();
+	return;
+}
+
 mat4x4 Tri_Mesh::calculateQ(const Point& p) {
 	float a = p[0];
 	float b = p[1];
 	float c = p[2];
 	float d = 1;
-	
+
 	mat4x4 q;
 	q[0][0] = a * a;
 	q[0][1] = a * b;

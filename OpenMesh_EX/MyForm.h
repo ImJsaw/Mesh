@@ -794,7 +794,9 @@ namespace OpenMesh_EX {
 	private: System::Void errorQuadricToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (mesh != NULL) {
 			Tri_Mesh t = mesh->simplify(0.7);
+			//Tri_Mesh t = mesh->averageSimplify();
 			mesh = &t;
+			hkoglPanelControl1->Invalidate();
 		}
 	}
 };
