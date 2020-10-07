@@ -39,6 +39,7 @@ unsigned int programImg;
 glm::vec4 pixel;
 int facesid[FACE_SIZE];
 vector<int> facesid2;
+std::vector<double> modelCenter;
 
 float quadVertices1[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
 	// positions   // texCoords
@@ -245,7 +246,7 @@ namespace OpenMesh_EX {
 			pixel.b = 0.0f;
 			pixel.a = 0.0f;
 			for (int i = 0; i < FACE_SIZE; i++) facesid[i] = -1;
-			Projection = glm::perspective(100.0f, 4.0f / 3.0f, 0.001f, 100.0f);
+			Projection = glm::perspective(100.0f, 4.0f / 3.0f, 0.001f, 1000.0f);
 		}
 
 	protected:
@@ -287,11 +288,11 @@ namespace OpenMesh_EX {
 			this->fileToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->loadModelToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->saveModelToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->errorQuadricToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->openModelDialog = (gcnew System::Windows::Forms::OpenFileDialog());
 			this->saveModelDialog = (gcnew System::Windows::Forms::SaveFileDialog());
 			this->hkoglPanelControl1 = (gcnew HKOGLPanel::HKOGLPanelControl());
 			this->tableLayoutPanel1 = (gcnew System::Windows::Forms::TableLayoutPanel());
-			this->errorQuadricToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->menuStrip1->SuspendLayout();
 			this->tableLayoutPanel1->SuspendLayout();
 			this->SuspendLayout();
@@ -305,7 +306,7 @@ namespace OpenMesh_EX {
 			});
 			this->menuStrip1->Location = System::Drawing::Point(0, 0);
 			this->menuStrip1->Name = L"menuStrip1";
-			this->menuStrip1->Size = System::Drawing::Size(584, 24);
+			this->menuStrip1->Size = System::Drawing::Size(1051, 24);
 			this->menuStrip1->TabIndex = 1;
 			this->menuStrip1->Text = L"menuStrip1";
 			this->menuStrip1->ItemClicked += gcnew System::Windows::Forms::ToolStripItemClickedEventHandler(this, &MyForm::menuStrip1_ItemClicked);
@@ -334,6 +335,13 @@ namespace OpenMesh_EX {
 			this->saveModelToolStripMenuItem->Text = L"Save Model";
 			this->saveModelToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::saveModelToolStripMenuItem_Click);
 			// 
+			// errorQuadricToolStripMenuItem
+			// 
+			this->errorQuadricToolStripMenuItem->Name = L"errorQuadricToolStripMenuItem";
+			this->errorQuadricToolStripMenuItem->Size = System::Drawing::Size(94, 20);
+			this->errorQuadricToolStripMenuItem->Text = L"Error Quadric";
+			this->errorQuadricToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::errorQuadricToolStripMenuItem_Click);
+			// 
 			// openModelDialog
 			// 
 			this->openModelDialog->FileOk += gcnew System::ComponentModel::CancelEventHandler(this, &MyForm::openModelDialog_FileOk);
@@ -357,7 +365,7 @@ namespace OpenMesh_EX {
 			hkcoglPanelPixelFormat1->Alpha_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
 			hkcoglPanelPixelFormat1->Stencil_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
 			this->hkoglPanelControl1->Pixel_Format = hkcoglPanelPixelFormat1;
-			this->hkoglPanelControl1->Size = System::Drawing::Size(958, 487);
+			this->hkoglPanelControl1->Size = System::Drawing::Size(1044, 494);
 			this->hkoglPanelControl1->TabIndex = 2;
 			this->hkoglPanelControl1->Load += gcnew System::EventHandler(this, &MyForm::hkoglPanelControl1_Load);
 			this->hkoglPanelControl1->Paint += gcnew System::Windows::Forms::PaintEventHandler(this, &MyForm::hkoglPanelControl1_Paint);
@@ -379,22 +387,15 @@ namespace OpenMesh_EX {
 			this->tableLayoutPanel1->RowCount = 1;
 			this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 50)));
 			this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 50)));
-			this->tableLayoutPanel1->Size = System::Drawing::Size(964, 493);
+			this->tableLayoutPanel1->Size = System::Drawing::Size(1050, 500);
 			this->tableLayoutPanel1->TabIndex = 3;
 			this->tableLayoutPanel1->Paint += gcnew System::Windows::Forms::PaintEventHandler(this, &MyForm::tableLayoutPanel1_Paint);
-			// 
-			// errorQuadricToolStripMenuItem
-			// 
-			this->errorQuadricToolStripMenuItem->Name = L"errorQuadricToolStripMenuItem";
-			this->errorQuadricToolStripMenuItem->Size = System::Drawing::Size(94, 20);
-			this->errorQuadricToolStripMenuItem->Text = L"Error Quadric";
-			this->errorQuadricToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::errorQuadricToolStripMenuItem_Click);
 			// 
 			// MyForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 12);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-			this->ClientSize = System::Drawing::Size(584, 441);
+			this->ClientSize = System::Drawing::Size(1051, 521);
 			this->Controls->Add(this->tableLayoutPanel1);
 			this->Controls->Add(this->menuStrip1);
 			this->MainMenuStrip = this->menuStrip1;
@@ -444,6 +445,7 @@ namespace OpenMesh_EX {
 			glm::vec3(0, 0, 0), // and looks at the origin
 			glm::vec3(0, 1, 0)  // Head is up (set to 0,1,0 to look upside-down)
 		);
+
 
 		for (int i = 0; i < 3; i++) {
 			std::string ProjectName;
@@ -540,14 +542,20 @@ namespace OpenMesh_EX {
 			//set MVP matrix
 			float horizonAngle = DOR(eyeAngleX);
 			float verticleAngle = DOR(eyeAngleY);
+			//ViewMatrix = lookAt(
+			//	glm::vec3(eyedistance*cos(horizonAngle)*cos(verticleAngle), eyedistance*sin(verticleAngle), eyedistance*sin(horizonAngle)*cos(verticleAngle)),
+			//	glm::vec3(0, 0, 0), // and looks at the origin
+			//	glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+			//);
 			ViewMatrix = lookAt(
-				glm::vec3(eyedistance*cos(horizonAngle)*cos(verticleAngle), eyedistance*sin(verticleAngle), eyedistance*sin(horizonAngle)*cos(verticleAngle)),
-				glm::vec3(0, 0, 0), // and looks at the origin
+				glm::vec3(modelCenter[0], modelCenter[1], modelCenter[2] + eyedistance ),
+				glm::vec3(modelCenter[0], modelCenter[1], modelCenter[2]), // and looks at the origin
 				glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
 			);
-			mat4 Model = translate(translateX, translateY, 0.0f);
-			MVP = Model * Projection * ViewMatrix;//translate via screen viewport, so model last
-			//MVP = Projection * ViewMatrix * Model;
+			mat4 Model = translate(translateX, translateY, 0.0f) * rotate(horizonAngle, float(modelCenter[0]), 1.0f, float(modelCenter[2]));
+			//MVP = Model * Projection * ViewMatrix;//translate via screen viewport, so model last
+
+			MVP = Projection * ViewMatrix * Model;
 
 			glUniformMatrix4fv(mvpID, 1, GL_FALSE, &MVP[0][0]);
 
@@ -662,7 +670,7 @@ namespace OpenMesh_EX {
 				mesh->findNearestVert(*mesh, mousePosition, pixel.r - 1, selectedVertices, MVP, eyedistance);
 				//update mesh
 				
-				mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
+				mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0], modelCenter);
 				std::cout << "meshUV.size() : " << meshUV[objptr].size() << "vertices.size()" << vertices[objptr].size() << endl;
 				std::cout << "face" << face[objptr] << std::endl;
 			}
@@ -708,8 +716,8 @@ namespace OpenMesh_EX {
 			//std::cout << "left" << std::endl;
 			//eyeAngleX += (e->X - prevMouseX)*0.05;
 			//eyeAngleY += (e->Y - prevMouseY)*0.05;
-			eyeAngleX += (e->X - prevMouseX)*0.2;
-			eyeAngleY += (e->Y - prevMouseY)*0.2;
+			eyeAngleX += (e->X - prevMouseX)*10;
+			eyeAngleY += (e->Y - prevMouseY)*10;
 			//record mouse position for drag event
 			prevMouseX = e->X;
 			prevMouseY = e->Y;
@@ -727,9 +735,9 @@ namespace OpenMesh_EX {
 
 	//mouseWheel
 	private: System::Void hkoglPanelControl1_MouseWheel(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
-		if (e->Delta < 0) eyedistance += 0.1;
+		if (e->Delta < 0) eyedistance += 0.2;
 		else {
-			eyedistance -= 0.1;
+			eyedistance -= 0.2;
 			//if (eyedistance < 0.4) eyedistance = 0.4;
 			//std::cout << "wheel up, distance : "  << eyedistance << std::endl;
 		}
@@ -762,7 +770,7 @@ namespace OpenMesh_EX {
 		if (ReadFile(filename, mesh)) std::cout << filename << std::endl;
 		isLoad = true;
 
-		mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
+		mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0], modelCenter);
 		std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
 		std::cout << "face" << face[0] << std::endl;
 		objptr++;
