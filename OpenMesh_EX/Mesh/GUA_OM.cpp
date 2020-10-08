@@ -661,7 +661,7 @@ void Tri_Mesh::findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int fac
 		}
 	}
 	for (int i = 0; i < 3 && isFaceMatch; i++) vertex.push_back(point(min)[i]);
-	
+
 	//delVert(min);
 	oneRingCollapse(min);
 
@@ -1198,6 +1198,67 @@ void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
 	}
 	garbage_collection();
 	return;
+}
+
+mat4x4 Tri_Mesh::calculateL() {
+	mat4x4 L;
+	VIter v_it;
+	VOHIter ve_it;
+	int edge_size = this->n_edges();
+	//i
+	//iterate every vert
+	for (v_it = this->vertices_begin(); v_it->is_valid(); ++v_it) {
+		int index = v_it->idx();
+		float sum = 0.0;
+		int count = 0;
+		//init matrix
+		for (int i = 0; i < edge_size; i++) {
+			L[index - 1][i] = 0;
+		}
+		//j
+		//iterate all edge out from vert
+		for (ve_it = voh_iter(v_it.handle()); ve_it->is_valid(); ++ve_it) {
+			count++;
+			//cot => i,j
+			float cot = getCot(ve_it.handle());
+			const int toID = to_vertex_handle(ve_it.handle()).idx();
+			L[index - 1][toID - 1] = cot;
+			sum -= cot;
+
+		}
+		// i,i
+		L[index - 1][index - 1] = sum / count;
+	}
+	return L;
+}
+
+float Tri_Mesh::getCot(HHandle eh) {
+	const HHandle he01 = eh;
+	const HHandle he10 = opposite_halfedge_handle(he01);;
+	const HHandle he12 = next_halfedge_handle(he01);
+	const HHandle he03 = next_halfedge_handle(he10);
+	const VHandle v0 = from_vertex_handle(he01);
+	const VHandle v1 = to_vertex_handle(he01);
+	const VHandle v2 = to_vertex_handle(he12);
+	const VHandle v3 = to_vertex_handle(he03);
+	const Point p0 = point(v0);
+	const Point p1 = point(v1);
+	const Point p2 = point(v2);
+	const Point p3 = point(v3);
+
+	float cot = 0.0;
+	if (!is_boundary(he01)) {
+		const Point v21 = p2 - p1;
+		const Point v20 = p2 - p0;
+		cot += OpenMesh::dot(v21, v20) / OpenMesh::cross(v21, v20).norm();
+	}
+	if (!is_boundary(he10)) {
+		const Point v31 = p3 - p1;
+		const Point v30 = p3 - p0;
+		cot += OpenMesh::dot(v31, v30) / OpenMesh::cross(v31, v30).norm();
+	}
+
+	return cot;
 }
 
 mat4x4 Tri_Mesh::calculateQ(const Point& p) {
