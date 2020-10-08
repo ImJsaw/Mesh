@@ -793,8 +793,19 @@ namespace OpenMesh_EX {
 
 	private: System::Void errorQuadricToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (mesh != NULL) {
-			Tri_Mesh t = mesh->simplify(0.7);
+			Tri_Mesh t = mesh->simplify(0.85);
+			delete mesh;
 			mesh = &t;
+			for (int i = 0; i < OBJ_NUM; i++) {
+				vertices[i].clear();
+				face[i] = 0;
+				meshUV[i].clear();
+			}
+			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
+			std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
+			std::cout << "face" << face[0] << std::endl;
+
+			hkoglPanelControl1->Invalidate();
 		}
 	}
 };

@@ -863,7 +863,7 @@ void Tri_Mesh::loadToBufferPatch(std::vector<double> & out_vertices, int & face,
 	VIter v_it;
 	face = 0;
 	std::vector<Tri_Mesh::VertexHandle> vhandle;
-	std::vector<Tri_Mesh::VertexHandle>  face_vhandles;
+	std::vector<Tri_Mesh::VertexHandle> face_vhandles;
 	int verticesSeq[3] = { 0,0,0 };
 	int verticesSeqIndex = 0;
 	int isPatchHasPoint = 0;
@@ -972,19 +972,24 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			cost = _cost;
 		}
 
-		bool operator()(EdgeHandle* p1, EdgeHandle* p2)
+		bool operator()(int p1, int p2)
 		{
-			return mesh->property(*cost, *p1) > mesh->property(*cost, *p2);
+			auto edgeHandle1 = mesh->edge_handle(p1);
+			auto edgeHandle2 = mesh->edge_handle(p2);
+			return mesh->property(*cost, edgeHandle1) > mesh->property(*cost, edgeHandle1);
 		}
 	};
 
 	CompareCost compare = CompareCost(&simplified, &cost);
-	_priority_queue<EdgeHandle*, vector<EdgeHandle*>, CompareCost> pq(compare);
+	
+	// change to some kind of types that can specify edges(maybe edge* or idx(int))
+	_priority_queue<int, vector<int>, CompareCost> pq(compare);
 
 	if (threshold == 0) {
 		for (e_it = simplified.edges_begin(); e_it != simplified.edges_end(); ++e_it) {
 			update_edge(e_it.handle());
-			pq.push(&e_it.handle());
+			pq.push(e_it.handle().idx());
+			printf("id: %d\n", e_it.handle().idx());
 		}
 	}
 
@@ -993,31 +998,47 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	// repeat until the vertex number is lower than the target number
 	int targetVertexCount = vertexCount * rate;
 	while (vertexCount > targetVertexCount) {
-		EdgeHandle eh = *pq.top();
+		if (pq.empty()) break;
+		int id = pq.top();
+		EdgeHandle eh = simplified.edge_handle(id);
 		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 		VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));
 		
+		cout << "pop" << endl;
 		pq.pop();
+		cout << "pop finished" << endl;
 		
 		if (is_collapse_ok(halfedge_handle(eh, 0))) {
+			cout << eh.idx() << " is going to be removed" << endl;
 			// remove connected edges in pq
 			VertexEdgeIter ve_it = simplified.ve_iter(from);
+			cout << "initial vertex num: " << pq.size() << endl;
 			for (; ve_it.is_valid(); ++ve_it) {
-				pq.remove(&*ve_it);
+				printf("target id: %d\n", ve_it.handle().idx());
+				if (!pq.remove(ve_it.handle().idx())) {
+					cout << "Error!" << endl;
+				}
+				else cout << "success" << endl;
 			}
+			cout << "first" << endl;
 			ve_it = simplified.ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
-				pq.remove(&*ve_it);
+				if (!pq.remove(ve_it.handle().idx())) {
+					cout << "Error!" << endl;
+				}
+				else cout << "success" << endl;
 			}
-
+			cout << "remain edge num: " << pq.size() << endl;
+			cout << "second" << endl;
 			// collapse
 			simplified.collapse(halfedge_handle(eh, 0));
-
+			cout << "collapse" << endl;
+			cout << "remain vertices: " << simplified.n_vertices() << endl;
 			// update the cost of connected edges and push them back to the pq
 			ve_it = simplified.ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
 				update_edge(ve_it.handle());
-				pq.push(&*ve_it);
+				pq.push(ve_it.handle().idx());
 			}
 
 			vertexCount--;
@@ -1025,6 +1046,8 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 
 	}
 
+	cout << "FINISH" << endl;
+	cout << simplified.n_vertices() << endl;
 	simplified.garbage_collection();
 	return simplified;
 }
