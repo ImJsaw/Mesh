@@ -1,4 +1,41 @@
 #include "GUA_OM.h"
+#include <algorithm>
+#include <iostream>
+
+class TriVertex
+{
+public:
+	double x;
+	double y;
+	double z;
+	TriVertex(double x, double y, double z)
+	{
+		this->x = x;
+		this->y = y;
+		this->z = z;
+	}
+	~TriVertex()
+	{
+	}
+
+	bool operator ==(const TriVertex& b)
+	{
+		if (this->x == b.x && this->y == b.y && this->z == b.z)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	friend ostream &operator<<(ostream& os, const TriVertex& tv)
+	{
+		os << "(" << tv.x << ", " << tv.y << ", " << tv.z << ")";
+		return os;
+	}
+
+};
 
 namespace OMT {
 	/*======================================================================*/
@@ -1152,6 +1189,72 @@ mat4x4 Tri_Mesh::calculateQ(const Point& p) {
 	q[3][3] = d * d;
 
 	return q;
+}
+
+bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector<double> & p2, std::vector<double> & vertices)
+{
+	std::vector<int> faceBuffer;
+	std::vector<TriVertex> vertexBuffer;
+	for (int faceID = 0; faceID < vertices.size()/9; faceID++)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			// 每個面有三個vertexes
+			double vertexX = vertices[faceID*9 + 3 * i];
+			double vertexY = vertices[faceID*9 + 3 * i + 1];
+			double vertexZ = vertices[faceID*9 + 3 * i + 2];
+			if (p1[0] == vertexX && p1[1] == vertexY && p1[2] == vertexZ)
+			{
+				cout << "p1 in face: " << faceID << endl;
+				//比對是否屬於該平面
+				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end())
+				{
+					faceBuffer.push_back(faceID);
+					//加入該平面其餘2點
+					for (int k = 0; k < 3; k++)
+					{
+						if (k == i)
+							continue;
+						double X = vertices[faceID * 9 + 3 * k];
+						double Y = vertices[faceID * 9 + 3 * k + 1];
+						double Z = vertices[faceID * 9 + 3 * k + 2];
+						vertexBuffer.push_back(TriVertex(X, Y, Z));
+					}
+				}
+			}
+			if (p2[0] == vertexX && p2[1] == vertexY && p2[2] == vertexZ)
+			{
+				cout << "p2 in face: " << faceID << endl;
+				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end())
+				{
+					faceBuffer.push_back(faceID);
+					//加入該平面其餘2點
+					for (int k = 0; k < 3; k++)
+					{
+						if (k == i)
+							continue;
+						double X = vertices[faceID * 9 + 3 * k];
+						double Y = vertices[faceID * 9 + 3 * k + 1];
+						double Z = vertices[faceID * 9 + 3 * k + 2];
+						vertexBuffer.push_back(TriVertex(X, Y, Z));
+					}
+				}
+			}
+		}
+	}
+	cout << "faceBuffer: ";
+	for (int i = 0; i < faceBuffer.size(); i++)
+	{
+		cout << faceBuffer[i] << ", ";
+	}
+	cout << endl;
+	cout << vertexBuffer.size() << endl;
+	for (int i = 0; i < vertexBuffer.size(); i++)
+	{
+		cout << vertexBuffer[i] << endl;
+	}	
+
+	return false;
 }
 
 

@@ -41,6 +41,7 @@ int facesid[FACE_SIZE];
 vector<int> facesid2;
 std::vector<double> modelCenter;
 
+
 float quadVertices1[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
 	// positions   // texCoords
 	-1.0f,  1.0f,  0.0f, 1.0f,
@@ -775,6 +776,21 @@ namespace OpenMesh_EX {
 		std::cout << "face" << face[0] << std::endl;
 		objptr++;
 		hkoglPanelControl1->Invalidate();
+
+		//test
+		std::vector<double> point1;
+		std::vector<double> point2;
+		for (int k = 12; k < 15; k++)
+		{
+			double temp = vertices[0][k];
+			point1.push_back(temp);
+		}
+		for (int k = 9; k < 12; k++)
+		{
+			double temp = vertices[0][k];
+			point2.push_back(temp);
+		}
+		mesh->DetermineConcaveByTwoPoints(point1, point2, vertices[0]);
 	}
 
 	//saveObj menu open
