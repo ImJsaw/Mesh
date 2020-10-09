@@ -2,12 +2,21 @@
 #include <algorithm>
 #include <iostream>
 
+
+using namespace std;
+
 class TriVertex
 {
 public:
 	double x;
 	double y;
 	double z;
+	TriVertex()
+	{
+		this->x = 0;
+		this->y = 0;
+		this->z = 0;
+	}
 	TriVertex(double x, double y, double z)
 	{
 		this->x = x;
@@ -36,6 +45,36 @@ public:
 	}
 
 };
+class TriLine
+{
+public:
+	TriVertex p1;
+	TriVertex p2;
+	double vector[3] ;
+
+	TriLine(TriVertex &p1, TriVertex &p2)
+	{
+		this->p1 = p1;
+		this->p2 = p2;
+		vector[0] = p2.x - p1.x;
+		vector[1] = p2.y - p1.y;
+		vector[2] = p2.z - p1.z;
+	}
+	~TriLine()
+	{
+	}
+	friend ostream &operator<<(ostream& os, const TriLine& line)
+	{
+		os << "[" << line.p1 << " -> " << line.p2 <<  "]";
+		return os;
+	}
+	double static cross(TriLine & line1, TriLine& line2)
+	{
+		return line1.vector[0] * line2.vector[0] + line1.vector[1] * line2.vector[1] + line1.vector[2] * line2.vector[2];
+	}
+
+};
+
 
 namespace OMT {
 	/*======================================================================*/
@@ -1194,67 +1233,107 @@ mat4x4 Tri_Mesh::calculateQ(const Point& p) {
 bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector<double> & p2, std::vector<double> & vertices)
 {
 	std::vector<int> faceBuffer;
-	std::vector<TriVertex> vertexBuffer;
+	//std::vector<TriVertex> vertexBuffer;
+	std::vector<TriLine> edgeBuffer;
+	TriVertex center1 = TriVertex(p1[0], p1[1], p1[2]);
+	TriVertex center2 = TriVertex(p2[0], p2[1], p2[2]);
 	for (int faceID = 0; faceID < vertices.size()/9; faceID++)
 	{
 		for (int i = 0; i < 3; i++)
 		{
 			// 每個面有三個vertexes
-			double vertexX = vertices[faceID*9 + 3 * i];
-			double vertexY = vertices[faceID*9 + 3 * i + 1];
-			double vertexZ = vertices[faceID*9 + 3 * i + 2];
+			double vertexX = vertices[faceID * 9 + 3 * i];
+			double vertexY = vertices[faceID * 9 + 3 * i + 1];
+			double vertexZ = vertices[faceID * 9 + 3 * i + 2];
 			if (p1[0] == vertexX && p1[1] == vertexY && p1[2] == vertexZ)
 			{
-				cout << "p1 in face: " << faceID << endl;
 				//比對是否屬於該平面
 				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end())
 				{
 					faceBuffer.push_back(faceID);
 					//加入該平面其餘2點
-					for (int k = 0; k < 3; k++)
+					TriVertex temp[2];
+					for (int k = 1; k < 3; k++)
 					{
-						if (k == i)
-							continue;
-						double X = vertices[faceID * 9 + 3 * k];
-						double Y = vertices[faceID * 9 + 3 * k + 1];
-						double Z = vertices[faceID * 9 + 3 * k + 2];
-						vertexBuffer.push_back(TriVertex(X, Y, Z));
+						int offset = (i + k) % 3;
+						double X = vertices[faceID * 9 + 3 * offset];
+						double Y = vertices[faceID * 9 + 3 * offset + 1];
+						double Z = vertices[faceID * 9 + 3 * offset + 2];
+						temp[k - 1] = TriVertex(X, Y, Z);
+					}
+					if (!(temp[0] == center2 || temp[1] == center2))
+					{
+						edgeBuffer.push_back(TriLine(temp[0], temp[1]));
 					}
 				}
 			}
 			if (p2[0] == vertexX && p2[1] == vertexY && p2[2] == vertexZ)
 			{
-				cout << "p2 in face: " << faceID << endl;
 				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end())
 				{
 					faceBuffer.push_back(faceID);
 					//加入該平面其餘2點
-					for (int k = 0; k < 3; k++)
+					TriVertex temp[2];
+					for (int k = 1; k < 3; k++)
 					{
-						if (k == i)
-							continue;
-						double X = vertices[faceID * 9 + 3 * k];
-						double Y = vertices[faceID * 9 + 3 * k + 1];
-						double Z = vertices[faceID * 9 + 3 * k + 2];
-						vertexBuffer.push_back(TriVertex(X, Y, Z));
+						int offset = (i + k) % 3;
+						double X = vertices[faceID * 9 + 3 * offset];
+						double Y = vertices[faceID * 9 + 3 * offset + 1];
+						double Z = vertices[faceID * 9 + 3 * offset + 2];
+						temp[k - 1] = TriVertex(X, Y, Z);
+					}
+					if (!(temp[0] == center1 || temp[1] == center1))
+					{
+						edgeBuffer.push_back(TriLine(temp[0], temp[1]));
 					}
 				}
 			}
 		}
 	}
-	cout << "faceBuffer: ";
+	//face buffer
+	/*cout << "faceBuffer: ";
 	for (int i = 0; i < faceBuffer.size(); i++)
 	{
 		cout << faceBuffer[i] << ", ";
 	}
-	cout << endl;
-	cout << vertexBuffer.size() << endl;
-	for (int i = 0; i < vertexBuffer.size(); i++)
-	{
-		cout << vertexBuffer[i] << endl;
-	}	
+	cout << endl;*/
 
-	return false;
+	//edge buffer
+	//cout << edgeBuffer.size() << endl;
+	for (int i = 0; i < edgeBuffer.size(); i++)
+	{
+		//cout << edgeBuffer[i] << endl;
+		glPointSize(8.0);
+		glColor3f(1.0, 0.0, 0.0);
+		glBegin(GL_POINTS);
+		for (OMT::VIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it) {
+			GLdouble po[3] = { edgeBuffer[i].p1.x, edgeBuffer[i].p1.y, edgeBuffer[i].p1.z };
+			glVertex3dv(po);
+		}
+		glEnd();
+	}
+	int rounds = 0;
+	int index = 0;
+	while (rounds < edgeBuffer.size())
+	{
+		rounds++;
+		TriLine line1 = edgeBuffer[index];
+		//find next line 
+		for (int i = 0; i < edgeBuffer.size(); i++)
+		{
+			if (edgeBuffer[i].p1 == line1.p2)
+			{
+				index = i;
+				break;
+			}
+		}
+		TriLine line2 = edgeBuffer[index];
+		double crossValue = TriLine::cross(line1, line2);
+		cout << "crossValue: " << crossValue << endl;
+		if(crossValue < 0)
+			return false;
+	}
+	return true;
 }
 
 

@@ -780,12 +780,12 @@ namespace OpenMesh_EX {
 		//test
 		std::vector<double> point1;
 		std::vector<double> point2;
-		for (int k = 12; k < 15; k++)
+		for (int k = 90; k < 93; k++)
 		{
 			double temp = vertices[0][k];
 			point1.push_back(temp);
 		}
-		for (int k = 9; k < 12; k++)
+		for (int k = 93; k < 96; k++)
 		{
 			double temp = vertices[0][k];
 			point2.push_back(temp);
