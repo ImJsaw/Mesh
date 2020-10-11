@@ -269,6 +269,7 @@ namespace OpenMesh_EX {
 	private: System::Windows::Forms::TableLayoutPanel^  tableLayoutPanel1;
 	private: HKOGLPanel::HKOGLPanelControl^  hkoglPanelControl1;
 	private: System::Windows::Forms::ToolStripMenuItem^  errorQuadricToolStripMenuItem;
+	private: System::Windows::Forms::ToolStripMenuItem^  skeletonExtractionToolStripMenuItem;
 	protected:
 
 	private:
@@ -283,13 +284,14 @@ namespace OpenMesh_EX {
 		/// 這個方法的內容。
 		/// </summary>
 		void InitializeComponent(void) {
-			HKOGLPanel::HKCOGLPanelCameraSetting^  hkcoglPanelCameraSetting1 = (gcnew HKOGLPanel::HKCOGLPanelCameraSetting());
-			HKOGLPanel::HKCOGLPanelPixelFormat^  hkcoglPanelPixelFormat1 = (gcnew HKOGLPanel::HKCOGLPanelPixelFormat());
+			HKOGLPanel::HKCOGLPanelCameraSetting^  hkcoglPanelCameraSetting2 = (gcnew HKOGLPanel::HKCOGLPanelCameraSetting());
+			HKOGLPanel::HKCOGLPanelPixelFormat^  hkcoglPanelPixelFormat2 = (gcnew HKOGLPanel::HKCOGLPanelPixelFormat());
 			this->menuStrip1 = (gcnew System::Windows::Forms::MenuStrip());
 			this->fileToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->loadModelToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->saveModelToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->errorQuadricToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->skeletonExtractionToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->openModelDialog = (gcnew System::Windows::Forms::OpenFileDialog());
 			this->saveModelDialog = (gcnew System::Windows::Forms::SaveFileDialog());
 			this->hkoglPanelControl1 = (gcnew HKOGLPanel::HKOGLPanelControl());
@@ -301,9 +303,9 @@ namespace OpenMesh_EX {
 			// menuStrip1
 			// 
 			this->menuStrip1->ImageScalingSize = System::Drawing::Size(20, 20);
-			this->menuStrip1->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(2) {
+			this->menuStrip1->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(3) {
 				this->fileToolStripMenuItem,
-					this->errorQuadricToolStripMenuItem
+					this->errorQuadricToolStripMenuItem, this->skeletonExtractionToolStripMenuItem
 			});
 			this->menuStrip1->Location = System::Drawing::Point(0, 0);
 			this->menuStrip1->Name = L"menuStrip1";
@@ -343,6 +345,13 @@ namespace OpenMesh_EX {
 			this->errorQuadricToolStripMenuItem->Text = L"Error Quadric";
 			this->errorQuadricToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::errorQuadricToolStripMenuItem_Click);
 			// 
+			// skeletonExtractionToolStripMenuItem
+			// 
+			this->skeletonExtractionToolStripMenuItem->Name = L"skeletonExtractionToolStripMenuItem";
+			this->skeletonExtractionToolStripMenuItem->Size = System::Drawing::Size(127, 20);
+			this->skeletonExtractionToolStripMenuItem->Text = L"Skeleton Extraction";
+			this->skeletonExtractionToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::skeletonExtractionToolStripMenuItem_Click);
+			// 
 			// openModelDialog
 			// 
 			this->openModelDialog->FileOk += gcnew System::ComponentModel::CancelEventHandler(this, &MyForm::openModelDialog_FileOk);
@@ -354,18 +363,18 @@ namespace OpenMesh_EX {
 			// 
 			// hkoglPanelControl1
 			// 
-			hkcoglPanelCameraSetting1->Far = 1000;
-			hkcoglPanelCameraSetting1->Fov = 45;
-			hkcoglPanelCameraSetting1->Near = -1000;
-			hkcoglPanelCameraSetting1->Type = HKOGLPanel::HKCOGLPanelCameraSetting::CAMERATYPE::ORTHOGRAPHIC;
-			this->hkoglPanelControl1->Camera_Setting = hkcoglPanelCameraSetting1;
+			hkcoglPanelCameraSetting2->Far = 1000;
+			hkcoglPanelCameraSetting2->Fov = 45;
+			hkcoglPanelCameraSetting2->Near = -1000;
+			hkcoglPanelCameraSetting2->Type = HKOGLPanel::HKCOGLPanelCameraSetting::CAMERATYPE::ORTHOGRAPHIC;
+			this->hkoglPanelControl1->Camera_Setting = hkcoglPanelCameraSetting2;
 			this->hkoglPanelControl1->Dock = System::Windows::Forms::DockStyle::Fill;
 			this->hkoglPanelControl1->Location = System::Drawing::Point(3, 3);
 			this->hkoglPanelControl1->Name = L"hkoglPanelControl1";
-			hkcoglPanelPixelFormat1->Accumu_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
-			hkcoglPanelPixelFormat1->Alpha_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
-			hkcoglPanelPixelFormat1->Stencil_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
-			this->hkoglPanelControl1->Pixel_Format = hkcoglPanelPixelFormat1;
+			hkcoglPanelPixelFormat2->Accumu_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
+			hkcoglPanelPixelFormat2->Alpha_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
+			hkcoglPanelPixelFormat2->Stencil_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
+			this->hkoglPanelControl1->Pixel_Format = hkcoglPanelPixelFormat2;
 			this->hkoglPanelControl1->Size = System::Drawing::Size(1044, 494);
 			this->hkoglPanelControl1->TabIndex = 2;
 			this->hkoglPanelControl1->Load += gcnew System::EventHandler(this, &MyForm::hkoglPanelControl1_Load);
@@ -517,7 +526,7 @@ namespace OpenMesh_EX {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	//display
+			 //display
 	private: System::Void hkoglPanelControl1_Paint(System::Object^  sender, System::Windows::Forms::PaintEventArgs^  e) {
 		//std::cout << "refresh" << std::endl;
 		SCR_WIDTH = this->hkoglPanelControl1->Size.Width;
@@ -549,7 +558,7 @@ namespace OpenMesh_EX {
 			//	glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
 			//);
 			ViewMatrix = lookAt(
-				glm::vec3(modelCenter[0], modelCenter[1], modelCenter[2] + eyedistance ),
+				glm::vec3(modelCenter[0], modelCenter[1], modelCenter[2] + eyedistance),
 				glm::vec3(modelCenter[0], modelCenter[1], modelCenter[2]), // and looks at the origin
 				glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
 			);
@@ -647,7 +656,7 @@ namespace OpenMesh_EX {
 		}
 	}
 
-	//mouseClick
+			 //mouseClick
 	private: System::Void hkoglPanelControl1_MouseDown(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
 		if (e->Button == System::Windows::Forms::MouseButtons::Left) {
 			//leftClick	
@@ -670,7 +679,7 @@ namespace OpenMesh_EX {
 				selectedVertices.clear();
 				mesh->findNearestVert(*mesh, mousePosition, pixel.r - 1, selectedVertices, MVP, eyedistance);
 				//update mesh
-				
+
 				mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0], modelCenter);
 				std::cout << "meshUV.size() : " << meshUV[objptr].size() << "vertices.size()" << vertices[objptr].size() << endl;
 				std::cout << "face" << face[objptr] << std::endl;
@@ -711,14 +720,14 @@ namespace OpenMesh_EX {
 		hkoglPanelControl1->Invalidate();
 	}
 
-	//mouseDrag
+			 //mouseDrag
 	private: System::Void hkoglPanelControl1_MouseMove(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
 		if (e->Button == System::Windows::Forms::MouseButtons::Left) {
 			//std::cout << "left" << std::endl;
 			//eyeAngleX += (e->X - prevMouseX)*0.05;
 			//eyeAngleY += (e->Y - prevMouseY)*0.05;
-			eyeAngleX += (e->X - prevMouseX)*10;
-			eyeAngleY += (e->Y - prevMouseY)*10;
+			eyeAngleX += (e->X - prevMouseX) * 10;
+			eyeAngleY += (e->Y - prevMouseY) * 10;
 			//record mouse position for drag event
 			prevMouseX = e->X;
 			prevMouseY = e->Y;
@@ -734,7 +743,7 @@ namespace OpenMesh_EX {
 		hkoglPanelControl1->Invalidate();
 	}
 
-	//mouseWheel
+			 //mouseWheel
 	private: System::Void hkoglPanelControl1_MouseWheel(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
 		if (e->Delta < 0) eyedistance += 0.2;
 		else {
@@ -745,14 +754,14 @@ namespace OpenMesh_EX {
 		hkoglPanelControl1->Invalidate();
 	}
 
-	//click "openModel"
+			 //click "openModel"
 	private: System::Void loadModelToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		openModelDialog->Filter = "Model(*.obj)|*obj";
 		openModelDialog->Multiselect = false;
 		openModelDialog->ShowDialog();
 	}
 
-	//check openModel dialog
+			 //check openModel dialog
 	private: System::Void openModelDialog_FileOk(System::Object^  sender, System::ComponentModel::CancelEventArgs^  e) {
 		std::string filename;
 		MarshalString(openModelDialog->FileName, filename);
@@ -780,26 +789,24 @@ namespace OpenMesh_EX {
 		//test
 		std::vector<double> point1;
 		std::vector<double> point2;
-		for (int k = 90; k < 93; k++)
-		{
+		for (int k = 90; k < 93; k++) {
 			double temp = vertices[0][k];
 			point1.push_back(temp);
 		}
-		for (int k = 93; k < 96; k++)
-		{
+		for (int k = 93; k < 96; k++) {
 			double temp = vertices[0][k];
 			point2.push_back(temp);
 		}
 		mesh->DetermineConcaveByTwoPoints(point1, point2, vertices[0]);
 	}
 
-	//saveObj menu open
+			 //saveObj menu open
 	private: System::Void saveModelToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		saveModelDialog->Filter = "Model(*.obj)|*obj";
 		saveModelDialog->ShowDialog();
 	}
 
-	//check saveObj in dialog 
+			 //check saveObj in dialog 
 	private: System::Void saveModelDialog_FileOk(System::Object^  sender, System::ComponentModel::CancelEventArgs^  e) {
 		std::string filename;
 		MarshalString(saveModelDialog->FileName, filename);
@@ -809,7 +816,7 @@ namespace OpenMesh_EX {
 	private: System::Void tableLayoutPanel1_Paint(System::Object^  sender, System::Windows::Forms::PaintEventArgs^  e) {}
 	private: System::Void menuStrip1_ItemClicked(System::Object^  sender, System::Windows::Forms::ToolStripItemClickedEventArgs^  e) {}
 
-	// button2 is for 模型上的線on/off
+			 // button2 is for 模型上的線on/off
 	private: System::Void button2_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (line) line = false;
 		else line = true;
@@ -823,5 +830,15 @@ namespace OpenMesh_EX {
 			hkoglPanelControl1->Invalidate();
 		}
 	}
-};
+
+	private: System::Void skeletonExtractionToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
+		if (mesh != NULL) {
+			mesh->getSkeleton();
+			hkoglPanelControl1->Invalidate();
+		}
+		else
+			cout << "mesh null" << endl;
+	}
+
+	};
 }

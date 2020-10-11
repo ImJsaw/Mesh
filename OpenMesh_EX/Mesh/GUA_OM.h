@@ -241,9 +241,12 @@ public:
 	void findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex , mat4 MVP , double dis);
 	void delVert(VHandle vhandle);
 	void oneRingCollapse(VHandle vhandle);
-	mat4x4 calculateL();
-	float getCot(HHandle e);
 	bool DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector<double> & p2, std::vector<double> & vertices);
+	//skeleton//
+	float getCot(const HHandle e);
+	void getSkeleton();
+	/////////////
+	//simplify//////
 	mat4x4 calculateQ(const Point& p);
 	Tri_Mesh simplify(float rate, float threshold = 0);
 	Tri_Mesh averageSimplify();
@@ -268,6 +271,10 @@ public:
 	void Render_Point();
 
 private:
+	SparseMatrix<double> getNewVert(SparseMatrix<double> L );
+	SparseMatrix<double> calculateL();
+	SparseMatrix<double> prepareLaplacian();
+
 };
 
 ///*======================================================================*/

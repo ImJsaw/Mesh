@@ -1200,39 +1200,130 @@ void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
 	return;
 }
 
-mat4x4 Tri_Mesh::calculateL() {
-	mat4x4 L;
+void Tri_Mesh::getSkeleton() {
+	cout << "get skeleton" << endl;
+	SparseMatrix<double> L = calculateL();
+	SparseMatrix<double> newV = getNewVert(L);
+
+	for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
+		int index = v_it->idx();
+		//first row 0 0 0, so offset 1
+		Point p = Point();
+		p[0] = newV.coeff(index + 1, 0);
+		p[1] = newV.coeff(index + 1, 1);
+		p[2] = newV.coeff(index + 1, 2);
+		this->set_point(*v_it, p);
+		cout << "update point " << index << "to " << p << endl;
+	}
+	return ;
+}
+
+SparseMatrix<double> Tri_Mesh::getNewVert(SparseMatrix<double> L) {
+	// (WL) L   V' = 0
+	// WH		V' = WH V
+
+	//
+	double WL = 1;
+	double WH = 1;
+	//reserve place for WH
+	SparseMatrix<double> Left(L.rows() + 1, L.cols());
+	Left.reserve(L.nonZeros() + L.cols());
+	//init left matrix
+	for (Index colIndex = 0; colIndex < L.cols();++colIndex) {
+		Left.startVec(colIndex);
+		for (SparseMatrix<double>::InnerIterator itL(L, colIndex); itL; ++itL)
+			Left.insertBack(itL.row(), colIndex) = itL.value() * WL;
+		Left.insertBack(L.rows()+1, colIndex) = WH;
+	}
+
+	//right matrix
+	const int vertices = this->n_vertices();
+	SparseMatrix<double> Right(vertices + 1,3);
+	Right.reserve(vertices * 3);
+	//iterate all vert
+	for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
+		int index = v_it->idx();
+		//first row 0 0 0, so offset 1
+		Right.coeffRef(index + 1, 0) = point(v_it.handle())[0] * WH;
+		Right.coeffRef(index + 1, 1) = point(v_it.handle())[1] * WH;
+		Right.coeffRef(index + 1, 2) = point(v_it.handle())[2] * WH;
+
+	}
+
+	//solve linear system.
+	//TODO:
+
+	//return origin vert to test matrix ok.
+	return Right;
+
+}
+
+SparseMatrix<double> Tri_Mesh::calculateL() {
+	const int edge_size = this->n_edges();
+	SparseMatrix<double> L = prepareLaplacian();
+	cout << "prepare complete" << endl;
 	VIter v_it;
 	VOHIter ve_it;
-	int edge_size = this->n_edges();
 	//i
 	//iterate every vert
-	for (v_it = this->vertices_begin(); v_it->is_valid(); ++v_it) {
+	for (v_it = this->vertices_begin(); v_it!=this->vertices_end(); ++v_it) {
 		int index = v_it->idx();
 		float sum = 0.0;
 		int count = 0;
-		//init matrix
-		for (int i = 0; i < edge_size; i++) {
-			L[index - 1][i] = 0;
-		}
+		////init matrix
+		//for (int i = 0; i < edge_size; i++) {
+		//	cout << " L[" << index << "][" << i << "]=0" << endl;
+		//	L.coeffRef(index, i) = 0;
+		//	//L[index][i] = 0;
+		//}
 		//j
 		//iterate all edge out from vert
-		for (ve_it = voh_iter(v_it.handle()); ve_it->is_valid(); ++ve_it) {
+		for (ve_it = voh_iter(v_it.handle()); ve_it; ++ve_it) {
 			count++;
 			//cot => i,j
 			float cot = getCot(ve_it.handle());
 			const int toID = to_vertex_handle(ve_it.handle()).idx();
-			L[index - 1][toID - 1] = cot;
+			//cout << " L[" << index << "][" << toID<< "]="<<cot << endl;
+			L.coeffRef(index, toID) = cot;
+			//L[index][toID] = cot;
 			sum -= cot;
-
 		}
 		// i,i
-		L[index - 1][index - 1] = sum / count;
+		//cout << " L[" << index << "][" << index << "]=" << sum / count << endl;
+		L.coeffRef(index, index) = sum / count;
+		//L[index][index] = sum / count;
 	}
 	return L;
 }
 
-float Tri_Mesh::getCot(HHandle eh) {
+SparseMatrix<double> Tri_Mesh::prepareLaplacian() {
+	const int vertices = this->n_vertices();
+	SparseMatrix<double> A(vertices, vertices);
+
+	VectorXi sizes(vertices);
+	vector<vector<VHandle>> neighbors(vertices);
+	for (int i = 0; i < vertices; i++) {
+		//assume max 10 connected edge per vert
+		neighbors[i].reserve(10);
+		for (VHandle vv : this->vv_range(VHandle(i))) {
+			neighbors[i].push_back(vv);
+		}
+		//plus one for L(i,i)
+		sizes[i] = neighbors[i].size() + 1;
+	}
+
+	//assign memory for element
+	A.reserve(sizes);
+	for (int i = 0; i < vertices; i++) {
+		for (int j = 0; j < neighbors[i].size(); j++) {
+			A.insert(i, neighbors[i][j].idx());
+		}
+		A.insert(i, i);
+	}
+	return A;
+}
+
+float Tri_Mesh::getCot(const HHandle eh) {
 	const HHandle he01 = eh;
 	const HHandle he10 = opposite_halfedge_handle(he01);;
 	const HHandle he12 = next_halfedge_handle(he01);
