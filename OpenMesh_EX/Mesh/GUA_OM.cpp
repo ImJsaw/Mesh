@@ -1032,6 +1032,9 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			cout << "second" << endl;
 			// collapse
 			simplified.collapse(halfedge_handle(eh, 0));
+			from.invalidate();
+			// new point position
+			point(remain) = simplified.property(newPoint, eh);
 			cout << "collapse" << endl;
 			cout << "remain vertices: " << simplified.n_vertices() << endl;
 			// update the cost of connected edges and push them back to the pq
