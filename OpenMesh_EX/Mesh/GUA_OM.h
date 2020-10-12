@@ -271,7 +271,7 @@ public:
 	void Render_Point();
 
 private:
-	SparseMatrix<double> getNewVert(SparseMatrix<double> L );
+	SparseMatrix<double> getNewVert();
 	SparseMatrix<double> calculateL();
 	SparseMatrix<double> prepareLaplacian();
 

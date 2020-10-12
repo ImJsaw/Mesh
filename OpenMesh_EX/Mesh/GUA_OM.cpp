@@ -1202,23 +1202,24 @@ void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
 
 void Tri_Mesh::getSkeleton() {
 	cout << "get skeleton" << endl;
-	SparseMatrix<double> L = calculateL();
-	SparseMatrix<double> newV = getNewVert(L);
+	SparseMatrix<double> newV = getNewVert();
 
+	//extract new vert from matrix.
 	for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
 		int index = v_it->idx();
-		//first row 0 0 0, so offset 1
 		Point p = Point();
-		p[0] = newV.coeff(index + 1, 0);
-		p[1] = newV.coeff(index + 1, 1);
-		p[2] = newV.coeff(index + 1, 2);
+		p[0] = newV.coeff(index , 0);
+		p[1] = newV.coeff(index , 1);
+		p[2] = newV.coeff(index , 2);
 		this->set_point(*v_it, p);
-		cout << "update point " << index << "to " << p << endl;
+		//cout << "update point " << index << "to " << p << endl;
 	}
+	cout << "update." << endl;
 	return ;
 }
 
-SparseMatrix<double> Tri_Mesh::getNewVert(SparseMatrix<double> L) {
+SparseMatrix<double> Tri_Mesh::getNewVert() {
+	SparseMatrix<double> L = calculateL();
 	// (WL) L   V' = 0
 	// WH		V' = WH V
 
@@ -1250,11 +1251,12 @@ SparseMatrix<double> Tri_Mesh::getNewVert(SparseMatrix<double> L) {
 
 	}
 
+	cout << "ready solve linear system..." << endl;
 	//solve linear system.
 	//TODO:
-
-	//return origin vert to test matrix ok.
-	return Right;
+	LeastSquaresConjugateGradient<SparseMatrix<double>>  solver;
+	solver.compute(Left);
+	return solver.solve(Right);
 
 }
 
@@ -1270,13 +1272,6 @@ SparseMatrix<double> Tri_Mesh::calculateL() {
 		int index = v_it->idx();
 		float sum = 0.0;
 		int count = 0;
-		////init matrix
-		//for (int i = 0; i < edge_size; i++) {
-		//	cout << " L[" << index << "][" << i << "]=0" << endl;
-		//	L.coeffRef(index, i) = 0;
-		//	//L[index][i] = 0;
-		//}
-		//j
 		//iterate all edge out from vert
 		for (ve_it = voh_iter(v_it.handle()); ve_it; ++ve_it) {
 			count++;
