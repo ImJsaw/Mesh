@@ -982,7 +982,6 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 
 	CompareCost compare = CompareCost(simplified, &cost);
 	
-	// change to some kind of types that can specify edges(maybe edge* or idx(int))
 	_priority_queue<int, vector<int>, CompareCost> pq(compare);
 
 	if (threshold == 0) {
@@ -1021,7 +1020,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 				}
 				else cout << "success" << endl;
 			}
-			cout << "first" << endl;
+
 			ve_it = simplified->ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
 				if (!pq.remove(ve_it.handle().idx())) {
@@ -1029,19 +1028,15 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 				}
 				else cout << "success" << endl;
 			}
-			cout << "remain edge num: " << pq.size() << endl;
-			cout << "second" << endl;
 
-			cout << from.is_valid() << endl;
-			cout << remain.is_valid() << endl;
 			// collapse
 			simplified->collapse(halfedge_handle(eh, 0));
-			from.invalidate();
-			cout << "collapse" << endl;
-
-			// new point position
-			//point(remain) = simplified->property(newPoint, eh);
 			
+			// new point position
+			// point(remain) = simplified->property(newPoint, eh);
+			point(remain) = (point(from) + point(remain)) / 2;
+			from.invalidate();
+
 			// update the cost of connected edges and push them back to the pq
 			ve_it = simplified->ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
@@ -1055,7 +1050,6 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	}
 
 	cout << "FINISH" << endl;
-	cout << simplified->n_vertices() << endl;
 	simplified->remove_property(cost);
 	simplified->remove_property(QMat);
 	simplified->remove_property(newPoint);
