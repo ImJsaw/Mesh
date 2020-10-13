@@ -244,6 +244,7 @@ public:
 	bool DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector<double> & p2, std::vector<double> & vertices);
 	//skeleton//
 	float getCot(const HHandle e);
+	double getArea(const FHandle f);
 	void getSkeleton();
 	/////////////
 	//simplify//////
@@ -271,7 +272,11 @@ public:
 	void Render_Point();
 
 private:
-	SparseMatrix<double> getNewVert();
+	double w0;
+	double _WL;
+	double _WH;
+	const double _SL = 2.0;
+	SparseMatrix<double> getNewVert(double WL, double WH);
 	SparseMatrix<double> calculateL();
 	SparseMatrix<double> prepareLaplacian();
 

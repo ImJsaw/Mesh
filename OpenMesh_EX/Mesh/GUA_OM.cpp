@@ -5,71 +5,56 @@
 
 using namespace std;
 
-class TriVertex
-{
+class TriVertex {
 public:
 	double x;
 	double y;
 	double z;
-	TriVertex()
-	{
+	TriVertex() {
 		this->x = 0;
 		this->y = 0;
 		this->z = 0;
 	}
-	TriVertex(double x, double y, double z)
-	{
+	TriVertex(double x, double y, double z) {
 		this->x = x;
 		this->y = y;
 		this->z = z;
 	}
-	~TriVertex()
-	{
-	}
+	~TriVertex() {}
 
-	bool operator ==(const TriVertex& b)
-	{
-		if (this->x == b.x && this->y == b.y && this->z == b.z)
-		{
+	bool operator ==(const TriVertex& b) {
+		if (this->x == b.x && this->y == b.y && this->z == b.z) {
 			return true;
 		}
-		else
-		{
+		else {
 			return false;
 		}
 	}
-	friend ostream &operator<<(ostream& os, const TriVertex& tv)
-	{
+	friend ostream &operator<<(ostream& os, const TriVertex& tv) {
 		os << "(" << tv.x << ", " << tv.y << ", " << tv.z << ")";
 		return os;
 	}
 
 };
-class TriLine
-{
+class TriLine {
 public:
 	TriVertex p1;
 	TriVertex p2;
-	double vector[3] ;
+	double vector[3];
 
-	TriLine(TriVertex &p1, TriVertex &p2)
-	{
+	TriLine(TriVertex &p1, TriVertex &p2) {
 		this->p1 = p1;
 		this->p2 = p2;
 		vector[0] = p2.x - p1.x;
 		vector[1] = p2.y - p1.y;
 		vector[2] = p2.z - p1.z;
 	}
-	~TriLine()
-	{
-	}
-	friend ostream &operator<<(ostream& os, const TriLine& line)
-	{
-		os << "[" << line.p1 << " -> " << line.p2 <<  "]";
+	~TriLine() {}
+	friend ostream &operator<<(ostream& os, const TriLine& line) {
+		os << "[" << line.p1 << " -> " << line.p2 << "]";
 		return os;
 	}
-	double static cross(TriLine & line1, TriLine& line2)
-	{
+	double static cross(TriLine & line1, TriLine& line2) {
 		return line1.vector[0] * line2.vector[0] + line1.vector[1] * line2.vector[1] + line1.vector[2] * line2.vector[2];
 	}
 
@@ -563,11 +548,11 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, 
 	f_it = faces_begin();
 	fv_it = fv_iter(f_it);
 	double minX = *(point(fv_it.handle()).data());
-	double minY = *(point(fv_it.handle()).data()+1);
-	double minZ = *(point(fv_it.handle()).data()+2);
+	double minY = *(point(fv_it.handle()).data() + 1);
+	double minZ = *(point(fv_it.handle()).data() + 2);
 	double maxX = *(point(fv_it.handle()).data());
-	double maxY = *(point(fv_it.handle()).data()+1);
-	double maxZ = *(point(fv_it.handle()).data()+2);
+	double maxY = *(point(fv_it.handle()).data() + 1);
+	double maxZ = *(point(fv_it.handle()).data() + 2);
 	//std::cout << maxX << ", " << maxY << ", " << maxZ << endl;
 	for (f_it = faces_begin(); f_it != faces_end(); ++f_it) {
 		face++;
@@ -586,18 +571,18 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, 
 				minX = *(point(fv_it.handle()).data());
 			else if (maxX < *(point(fv_it.handle()).data()))
 				maxX = *(point(fv_it.handle()).data());
-			if (minY > *(point(fv_it.handle()).data()+1))
-				minY = *(point(fv_it.handle()).data()+1);
-			else if (maxY < *(point(fv_it.handle()).data()+1))
-				maxY = *(point(fv_it.handle()).data()+1);
-			if (minZ > *(point(fv_it.handle()).data()+2))
-				minZ = *(point(fv_it.handle()).data()+2);
-			else if (maxZ < *(point(fv_it.handle()).data()+2))
-				maxZ = *(point(fv_it.handle()).data()+2);
+			if (minY > *(point(fv_it.handle()).data() + 1))
+				minY = *(point(fv_it.handle()).data() + 1);
+			else if (maxY < *(point(fv_it.handle()).data() + 1))
+				maxY = *(point(fv_it.handle()).data() + 1);
+			if (minZ > *(point(fv_it.handle()).data() + 2))
+				minZ = *(point(fv_it.handle()).data() + 2);
+			else if (maxZ < *(point(fv_it.handle()).data() + 2))
+				maxZ = *(point(fv_it.handle()).data() + 2);
 		}
 	}
 	std::cout << maxX << ", " << minX << ", " << maxY << ", " << +minY << ", " << maxZ << ", " << minZ << endl;
-	std::cout << (maxX+minX)/2 << ", " << (maxY + minY) / 2 << ", " << (maxZ + minZ) / 2 << endl;
+	std::cout << (maxX + minX) / 2 << ", " << (maxY + minY) / 2 << ", " << (maxZ + minZ) / 2 << endl;
 	std::cout << out_vertices[0] << ", " << out_vertices[1] << ", " << out_vertices[2] << endl;
 	modelCenter.push_back((maxX + minX) / 2);
 	modelCenter.push_back((maxY + minY) / 2);
@@ -1202,44 +1187,55 @@ void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
 
 void Tri_Mesh::getSkeleton() {
 	cout << "get skeleton" << endl;
-	SparseMatrix<double> newV = getNewVert();
+	const int smoothTime = 3;
+	//model avg area
+	double a = 0;
 
-	//extract new vert from matrix.
-	for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
-		int index = v_it->idx();
-		Point p = Point();
-		p[0] = newV.coeff(index , 0);
-		p[1] = newV.coeff(index , 1);
-		p[2] = newV.coeff(index , 2);
-		this->set_point(*v_it, p);
-		//cout << "update point " << index << "to " << p << endl;
+	w0 = 1.0;
+	_WH = w0;
+	_WL = 0.001 * a;
+	for (int i = 0; i < smoothTime; i++) {
+
+		SparseMatrix<double> newV = getNewVert(_WL, _WH);
+
+		//extract new vert from matrix.
+		for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
+			int index = v_it->idx();
+			Point p = Point();
+			p[0] = newV.coeff(index, 0);
+			p[1] = newV.coeff(index, 1);
+			p[2] = newV.coeff(index, 2);
+			this->set_point(*v_it, p);
+			//cout << "update point " << index << "to " << p << endl;
+		}
+		cout << "update." << endl;
+		//update wh wl
+		_WL *= _SL;
+		_WH = 0;
 	}
-	cout << "update." << endl;
-	return ;
+	return;
 }
 
-SparseMatrix<double> Tri_Mesh::getNewVert() {
+SparseMatrix<double> Tri_Mesh::getNewVert(double WL = 1, double WH = 1) {
 	SparseMatrix<double> L = calculateL();
 	// (WL) L   V' = 0
 	// WH		V' = WH V
 
 	//
-	double WL = 1;
-	double WH = 1;
 	//reserve place for WH
 	SparseMatrix<double> Left(L.rows() + 1, L.cols());
 	Left.reserve(L.nonZeros() + L.cols());
 	//init left matrix
-	for (Index colIndex = 0; colIndex < L.cols();++colIndex) {
+	for (Index colIndex = 0; colIndex < L.cols(); ++colIndex) {
 		Left.startVec(colIndex);
 		for (SparseMatrix<double>::InnerIterator itL(L, colIndex); itL; ++itL)
 			Left.insertBack(itL.row(), colIndex) = itL.value() * WL;
-		Left.insertBack(L.rows()+1, colIndex) = WH;
+		Left.insertBack(L.rows() + 1, colIndex) = WH;
 	}
 
 	//right matrix
 	const int vertices = this->n_vertices();
-	SparseMatrix<double> Right(vertices + 1,3);
+	SparseMatrix<double> Right(vertices + 1, 3);
 	Right.reserve(vertices * 3);
 	//iterate all vert
 	for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
@@ -1253,7 +1249,6 @@ SparseMatrix<double> Tri_Mesh::getNewVert() {
 
 	cout << "ready solve linear system..." << endl;
 	//solve linear system.
-	//TODO:
 	LeastSquaresConjugateGradient<SparseMatrix<double>>  solver;
 	solver.compute(Left);
 	return solver.solve(Right);
@@ -1268,7 +1263,7 @@ SparseMatrix<double> Tri_Mesh::calculateL() {
 	VOHIter ve_it;
 	//i
 	//iterate every vert
-	for (v_it = this->vertices_begin(); v_it!=this->vertices_end(); ++v_it) {
+	for (v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
 		int index = v_it->idx();
 		float sum = 0.0;
 		int count = 0;
@@ -1316,6 +1311,14 @@ SparseMatrix<double> Tri_Mesh::prepareLaplacian() {
 		A.insert(i, i);
 	}
 	return A;
+}
+
+double Tri_Mesh::getArea(const FHandle f) {
+	FVIter fv_it = fv_iter(f);
+	const Point& P = point(fv_it);  ++fv_it;
+	const Point& Q = point(fv_it);  ++fv_it;
+	const Point& R = point(fv_it);
+	return ((Q - P) % (R - P)).norm() * 0.5f * 0.3333f;
 }
 
 float Tri_Mesh::getCot(const HHandle eh) {
@@ -1377,60 +1380,49 @@ mat4x4 Tri_Mesh::calculateQ(const Point& p) {
 	return q;
 }
 
-bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector<double> & p2, std::vector<double> & vertices)
-{
+bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector<double> & p2, std::vector<double> & vertices) {
 	std::vector<int> faceBuffer;
 	//std::vector<TriVertex> vertexBuffer;
 	std::vector<TriLine> edgeBuffer;
 	TriVertex center1 = TriVertex(p1[0], p1[1], p1[2]);
 	TriVertex center2 = TriVertex(p2[0], p2[1], p2[2]);
-	for (int faceID = 0; faceID < vertices.size()/9; faceID++)
-	{
-		for (int i = 0; i < 3; i++)
-		{
+	for (int faceID = 0; faceID < vertices.size() / 9; faceID++) {
+		for (int i = 0; i < 3; i++) {
 			// 每個面有三個vertexes
 			double vertexX = vertices[faceID * 9 + 3 * i];
 			double vertexY = vertices[faceID * 9 + 3 * i + 1];
 			double vertexZ = vertices[faceID * 9 + 3 * i + 2];
-			if (p1[0] == vertexX && p1[1] == vertexY && p1[2] == vertexZ)
-			{
+			if (p1[0] == vertexX && p1[1] == vertexY && p1[2] == vertexZ) {
 				//比對是否屬於該平面
-				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end())
-				{
+				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end()) {
 					faceBuffer.push_back(faceID);
 					//加入該平面其餘2點
 					TriVertex temp[2];
-					for (int k = 1; k < 3; k++)
-					{
+					for (int k = 1; k < 3; k++) {
 						int offset = (i + k) % 3;
 						double X = vertices[faceID * 9 + 3 * offset];
 						double Y = vertices[faceID * 9 + 3 * offset + 1];
 						double Z = vertices[faceID * 9 + 3 * offset + 2];
 						temp[k - 1] = TriVertex(X, Y, Z);
 					}
-					if (!(temp[0] == center2 || temp[1] == center2))
-					{
+					if (!(temp[0] == center2 || temp[1] == center2)) {
 						edgeBuffer.push_back(TriLine(temp[0], temp[1]));
 					}
 				}
 			}
-			if (p2[0] == vertexX && p2[1] == vertexY && p2[2] == vertexZ)
-			{
-				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end())
-				{
+			if (p2[0] == vertexX && p2[1] == vertexY && p2[2] == vertexZ) {
+				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end()) {
 					faceBuffer.push_back(faceID);
 					//加入該平面其餘2點
 					TriVertex temp[2];
-					for (int k = 1; k < 3; k++)
-					{
+					for (int k = 1; k < 3; k++) {
 						int offset = (i + k) % 3;
 						double X = vertices[faceID * 9 + 3 * offset];
 						double Y = vertices[faceID * 9 + 3 * offset + 1];
 						double Z = vertices[faceID * 9 + 3 * offset + 2];
 						temp[k - 1] = TriVertex(X, Y, Z);
 					}
-					if (!(temp[0] == center1 || temp[1] == center1))
-					{
+					if (!(temp[0] == center1 || temp[1] == center1)) {
 						edgeBuffer.push_back(TriLine(temp[0], temp[1]));
 					}
 				}
@@ -1447,8 +1439,7 @@ bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector
 
 	//edge buffer
 	//cout << edgeBuffer.size() << endl;
-	for (int i = 0; i < edgeBuffer.size(); i++)
-	{
+	for (int i = 0; i < edgeBuffer.size(); i++) {
 		//cout << edgeBuffer[i] << endl;
 		glPointSize(8.0);
 		glColor3f(1.0, 0.0, 0.0);
@@ -1461,15 +1452,12 @@ bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector
 	}
 	int rounds = 0;
 	int index = 0;
-	while (rounds < edgeBuffer.size())
-	{
+	while (rounds < edgeBuffer.size()) {
 		rounds++;
 		TriLine line1 = edgeBuffer[index];
 		//find next line 
-		for (int i = 0; i < edgeBuffer.size(); i++)
-		{
-			if (edgeBuffer[i].p1 == line1.p2)
-			{
+		for (int i = 0; i < edgeBuffer.size(); i++) {
+			if (edgeBuffer[i].p1 == line1.p2) {
 				index = i;
 				break;
 			}
@@ -1477,7 +1465,7 @@ bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector
 		TriLine line2 = edgeBuffer[index];
 		double crossValue = TriLine::cross(line1, line2);
 		cout << "crossValue: " << crossValue << endl;
-		if(crossValue < 0)
+		if (crossValue < 0)
 			return false;
 	}
 	return true;
