@@ -1045,8 +1045,6 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			// update the cost of connected edges and push them back to the pq
 			ve_it = simplified->ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
-				if (to_vertex_handle(halfedge_handle(ve_it)).idx() == from.idx()) continue;
-				if (to_vertex_handle(halfedge_handle(ve_it)).idx() == remain.idx()) continue;
 				update_edge(ve_it.handle());
 				pq.push(ve_it.handle().idx());
 			}
