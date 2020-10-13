@@ -793,9 +793,8 @@ namespace OpenMesh_EX {
 
 	private: System::Void errorQuadricToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (mesh != NULL) {
-			Tri_Mesh t = mesh->simplify(0.85);
-			delete mesh;
-			mesh = &t;
+			mesh->simplify(0.75);
+
 			for (int i = 0; i < OBJ_NUM; i++) {
 				vertices[i].clear();
 				face[i] = 0;
