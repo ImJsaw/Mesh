@@ -824,7 +824,7 @@ namespace OpenMesh_EX {
 				face[i] = 0;
 				meshUV[i].clear();
 			}
-			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
+			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0], modelCenter);
 			std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
 			std::cout << "face" << face[0] << std::endl;
 

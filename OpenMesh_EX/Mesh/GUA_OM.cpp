@@ -568,9 +568,20 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, 
 	double maxX = *(point(fv_it.handle()).data());
 	double maxY = *(point(fv_it.handle()).data() + 1);
 	double maxZ = *(point(fv_it.handle()).data() + 2);
+	//std::cout << maxX << ", " << maxY << ", " << maxZ << endl;
 	for (f_it = faces_begin(); f_it != faces_end(); ++f_it) {
+		face++;
 		fv_it = fv_iter(f_it);
+		//force 3vert or infinite loop??
 		for (int i = 0; i < 3; i++, ++fv_it) {
+			// 每個點有三個vertexes
+			out_vertices.push_back(*(point(fv_it.handle()).data()));
+			out_vertices.push_back(*(point(fv_it.handle()).data() + 1));
+			out_vertices.push_back(*(point(fv_it.handle()).data() + 2));
+			//std::cout << "x = " << *(point(fv_it.handle()).data()) << " y = " << *(point(fv_it.handle()).data() + 1) << " z = " << *(point(fv_it.handle()).data() + 2) << std::endl;
+			uv.push_back(_mesh.texcoord2D(fv_it.handle())[0]);
+			uv.push_back(_mesh.texcoord2D(fv_it.handle())[1]);
+			//std::cout << "s = " << _mesh.texcoord2D(fv_it.handle())[0] << " t = " << _mesh.texcoord2D(fv_it.handle())[0] << std::endl;
 			if (minX > *(point(fv_it.handle()).data()))
 				minX = *(point(fv_it.handle()).data());
 			else if (maxX < *(point(fv_it.handle()).data()))
@@ -585,39 +596,8 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, 
 				maxZ = *(point(fv_it.handle()).data() + 2);
 		}
 	}
-	double scalar = std::max( (maxX - minX), (maxY - minY));
-	scalar = std::max(scalar, (maxZ - minZ));
-	double modelCenter[3] = { (maxX - minX)/2, (maxY - minY)/2, (maxZ - minZ)/2 };
-
-	for (f_it = faces_begin(); f_it != faces_end(); ++f_it) {
-		face++;
-		fv_it = fv_iter(f_it);
-		//force 3vert or infinite loop??
-		for (int i = 0; i < 3; i++, ++fv_it) {
-			// 每個點有三個vertexes
-			out_vertices.push_back((*(point(fv_it.handle()).data()) - modelCenter[0]) / scalar);
-			out_vertices.push_back((*(point(fv_it.handle()).data() + 1) - modelCenter[1]) / scalar);
-			out_vertices.push_back((*(point(fv_it.handle()).data() + 2) - modelCenter[2]) / scalar);
-			//std::cout << "x = " << *(point(fv_it.handle()).data()) << " y = " << *(point(fv_it.handle()).data() + 1) << " z = " << *(point(fv_it.handle()).data() + 2) << std::endl;
-			uv.push_back(_mesh.texcoord2D(fv_it.handle())[0]);
-			uv.push_back(_mesh.texcoord2D(fv_it.handle())[1]);
-			//std::cout << "s = " << _mesh.texcoord2D(fv_it.handle())[0] << " t = " << _mesh.texcoord2D(fv_it.handle())[0] << std::endl;
-			if (minX > *(point(fv_it.handle()).data()))
-				minX = *(point(fv_it.handle()).data());
-			else if (maxX < *(point(fv_it.handle()).data()))
-				maxX = *(point(fv_it.handle()).data());
-			if (minY > *(point(fv_it.handle()).data()+1))
-				minY = *(point(fv_it.handle()).data()+1);
-			else if (maxY < *(point(fv_it.handle()).data()+1))
-				maxY = *(point(fv_it.handle()).data()+1);
-			if (minZ > *(point(fv_it.handle()).data()+2))
-				minZ = *(point(fv_it.handle()).data()+2);
-			else if (maxZ < *(point(fv_it.handle()).data()+2))
-				maxZ = *(point(fv_it.handle()).data()+2);
-		}
-	}
 	std::cout << maxX << ", " << minX << ", " << maxY << ", " << +minY << ", " << maxZ << ", " << minZ << endl;
-	std::cout << (maxX+minX)/2 << ", " << (maxY + minY) / 2 << ", " << (maxZ + minZ) / 2 << endl;
+	std::cout << (maxX + minX) / 2 << ", " << (maxY + minY) / 2 << ", " << (maxZ + minZ) / 2 << endl;
 	std::cout << out_vertices[0] << ", " << out_vertices[1] << ", " << out_vertices[2] << endl;
 	modelCenter.push_back((maxX + minX) / 2);
 	modelCenter.push_back((maxY + minY) / 2);
