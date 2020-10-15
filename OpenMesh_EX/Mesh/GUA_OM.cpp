@@ -938,14 +938,16 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		VertexHandle to = to_vertex_handle(halfedge_handle(eh, 0));
 		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 
-		mat4x4 newQ = simplified->property(QMat, to) + simplified->property(QMat, from);
+		// mat4x4 newQ = simplified->property(QMat, to) + simplified->property(QMat, from);
+		mat4x4 newQ = calculateQ(to) + calculateQ(from);
 		mat4x4 m = mat4x4(newQ);
-		m[3][0] = 0;
-		m[3][1] = 0;
-		m[3][2] = 0;
+		m[0][3] = 0;
+		m[1][3] = 0;
+		m[2][3] = 0;
 		m[3][3] = 1;
+
 		// check invertible??
-		vec4 newV = m._inverse() * vec4(0, 0, 0, 1);
+		vec4 newV = vec4(0, 0, 0, 1) * m._inverse();
 		Point newP = Point(newV.x, newV.y, newV.z);
 
 		auto cur_cost = (newV * newQ * newV)[0];
@@ -959,7 +961,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 
 	// calculate the Q matrix for all vertices
 	for (vertexCount = 0, v_it = simplified->vertices_begin(); v_it != simplified->vertices_end(); ++v_it, vertexCount++) {
-		mat4x4 q = calculateQ(point(v_it.handle()));
+		mat4x4 q = calculateQ(v_it.handle());
 		simplified->property(QMat, *v_it) = q;
 	}
 
@@ -1057,31 +1059,42 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	return *simplified;
 }
 
-mat4x4 Tri_Mesh::calculateQ(const Point& p) {
+mat4x4 Tri_Mesh::calculateQ(VertexHandle vhandle) {
+	VVIter vv_it;
+	Point p(0, 0, 0);
+
+	for (vv_it = vv_iter(vhandle); vv_it.is_valid(); ++vv_it) {
+		p += normal(*vv_it);
+	}
+
+	p.normalize();
+
+	Point v = point(vhandle);
+
 	float a = p[0];
 	float b = p[1];
 	float c = p[2];
-	float d = 1;
+	float d = -a * v[0] - b * v[1] - c * v[2];
 	
-	mat4x4 q;
+	mat4x4 q = mat4x4();
 	q[0][0] = a * a;
-	q[0][1] = a * b;
-	q[0][2] = a * c;
-	q[0][3] = a * d;
-
 	q[1][0] = a * b;
-	q[1][1] = b * b;
-	q[1][2] = b * c;
-	q[1][3] = b * d;
-
 	q[2][0] = a * c;
-	q[2][1] = c * b;
-	q[2][2] = c * c;
-	q[2][3] = c * d;
-
 	q[3][0] = a * d;
-	q[3][1] = d * b;
-	q[3][2] = d * c;
+
+	q[0][1] = a * b;
+	q[1][1] = b * b;
+	q[2][1] = b * c;
+	q[3][1] = b * d;
+
+	q[0][2] = a * c;
+	q[1][2] = c * b;
+	q[2][2] = c * c;
+	q[3][2] = c * d;
+
+	q[0][3] = a * d;
+	q[1][3] = d * b;
+	q[2][3] = d * c;
 	q[3][3] = d * d;
 
 	return q;
