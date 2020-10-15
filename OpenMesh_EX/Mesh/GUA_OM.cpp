@@ -938,6 +938,16 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		VertexHandle to = to_vertex_handle(halfedge_handle(eh, 0));
 		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 
+		/*
+		cout << "TO: " << point(to) << endl;
+		simplified->property(QMat, to) = calculateQ(point(to));
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				cout << simplified->property(QMat, to)[j][i] << " ";
+			}
+			cout << endl;
+		}
+		*/
 		// mat4x4 newQ = simplified->property(QMat, to) + simplified->property(QMat, from);
 		mat4x4 newQ = calculateQ(to) + calculateQ(from);
 		mat4x4 m = mat4x4(newQ);
@@ -949,6 +959,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		// check invertible??
 		vec4 newV = vec4(0, 0, 0, 1) * m._inverse();
 		Point newP = Point(newV.x, newV.y, newV.z);
+		cout << "newP: " << newV.x << " " << newV.y << " " << newV.z << endl;
 
 		auto cur_cost = (newV * newQ * newV)[0];
 		simplified->property(cost, eh) = cur_cost;
