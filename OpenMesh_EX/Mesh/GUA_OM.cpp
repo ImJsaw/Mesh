@@ -1062,13 +1062,18 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		// mat4x4 newQ = simplified->property(QMat, to) + simplified->property(QMat, from);
 		mat4x4 newQ = calculateQ(to) + calculateQ(from);
 		mat4x4 m = mat4x4(newQ);
-		m[0][3] = 0;
-		m[1][3] = 0;
-		m[2][3] = 0;
+		m[1][0] = m[0][1];
+		m[2][0] = m[0][2];
+
+		m[2][1] = m[1][2];
+		
+		m[3][0] = 0;
+		m[3][1] = 0;
+		m[3][2] = 0;
 		m[3][3] = 1;
 
 		// check invertible??
-		vec4 newV = vec4(0, 0, 0, 1) * m._inverse();
+		vec4 newV = m._inverse() * vec4(0, 0, 0, 1);
 		Point newP = Point(newV.x, newV.y, newV.z);
 		cout << "newP: " << newV.x << " " << newV.y << " " << newV.z << endl;
 
@@ -1204,23 +1209,23 @@ mat4x4 Tri_Mesh::calculateQ(VertexHandle vhandle) {
 
 
 	q[0][0] = a * a;
-	q[1][0] = a * b;
-	q[2][0] = a * c;
-	q[3][0] = a * d;
-
 	q[0][1] = a * b;
-	q[1][1] = b * b;
-	q[2][1] = b * c;
-	q[3][1] = b * d;
-
 	q[0][2] = a * c;
-	q[1][2] = c * b;
-	q[2][2] = c * c;
-	q[3][2] = c * d;
-
 	q[0][3] = a * d;
-	q[1][3] = d * b;
-	q[2][3] = d * c;
+
+	q[1][0] = a * b;
+	q[1][1] = b * b;
+	q[1][2] = b * c;
+	q[1][3] = b * d;
+
+	q[2][0] = a * c;
+	q[2][1] = c * b;
+	q[2][2] = c * c;
+	q[2][3] = c * d;
+
+	q[3][0] = a * d;
+	q[3][1] = d * b;
+	q[3][2] = d * c;
 	q[3][3] = d * d;
 
 	return q;
