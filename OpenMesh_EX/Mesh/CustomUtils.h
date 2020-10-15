@@ -7,7 +7,7 @@ using namespace std;
 
 template<typename T,
 		typename Sequence = std::vector<T>,
-		typename Compare = std::less<typename Sequence::value_type> >
+		typename Compare = std::less<typename T> >
 class _priority_queue : public priority_queue<T, Sequence, Compare> {
 	using priority_queue::priority_queue;
 public:

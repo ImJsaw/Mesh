@@ -1,4 +1,80 @@
 #include "GUA_OM.h"
+#include <algorithm>
+#include <iostream>
+
+
+using namespace std;
+
+class TriVertex
+{
+public:
+	double x;
+	double y;
+	double z;
+	TriVertex()
+	{
+		this->x = 0;
+		this->y = 0;
+		this->z = 0;
+	}
+	TriVertex(double x, double y, double z)
+	{
+		this->x = x;
+		this->y = y;
+		this->z = z;
+	}
+	~TriVertex()
+	{
+	}
+
+	bool operator ==(const TriVertex& b)
+	{
+		if (this->x == b.x && this->y == b.y && this->z == b.z)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	friend ostream &operator<<(ostream& os, const TriVertex& tv)
+	{
+		os << "(" << tv.x << ", " << tv.y << ", " << tv.z << ")";
+		return os;
+	}
+
+};
+class TriLine
+{
+public:
+	TriVertex p1;
+	TriVertex p2;
+	double vector[3] ;
+
+	TriLine(TriVertex &p1, TriVertex &p2)
+	{
+		this->p1 = p1;
+		this->p2 = p2;
+		vector[0] = p2.x - p1.x;
+		vector[1] = p2.y - p1.y;
+		vector[2] = p2.z - p1.z;
+	}
+	~TriLine()
+	{
+	}
+	friend ostream &operator<<(ostream& os, const TriLine& line)
+	{
+		os << "[" << line.p1 << " -> " << line.p2 <<  "]";
+		return os;
+	}
+	double static cross(TriLine & line1, TriLine& line2)
+	{
+		return line1.vector[0] * line2.vector[0] + line1.vector[1] * line2.vector[1] + line1.vector[2] * line2.vector[2];
+	}
+
+};
+
 
 namespace OMT {
 	/*======================================================================*/
@@ -472,11 +548,12 @@ void Tri_Mesh::Render_SolidWireframe() {
 	glPopAttrib();
 }
 //cache mesh to buffer
-void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, int & face, std::vector<double> & uv) {
+void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, int & face, std::vector<double> & uv, std::vector<double> & modelCenter) {
 	//to buffer , then shader
 	FIter f_it;
 	FVIter	fv_it;
 	out_vertices.clear();
+	modelCenter.clear();
 	face = 0;
 	/*std::cout << "mesh support : " << std::endl;
 	std::cout << "  " << "texcoords" << ": " << ((_mesh.has_vertex_texcoords1D()) ? "yes\n" : "no\n") << std::endl;
@@ -511,11 +588,12 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, 
 	double scalar = std::max( (maxX - minX), (maxY - minY));
 	scalar = std::max(scalar, (maxZ - minZ));
 	double modelCenter[3] = { (maxX - minX)/2, (maxY - minY)/2, (maxZ - minZ)/2 };
+
 	for (f_it = faces_begin(); f_it != faces_end(); ++f_it) {
 		face++;
 		fv_it = fv_iter(f_it);
 		//force 3vert or infinite loop??
-		for (int i =0; i<3; i++,++fv_it) {
+		for (int i = 0; i < 3; i++, ++fv_it) {
 			// 每個點有三個vertexes
 			out_vertices.push_back((*(point(fv_it.handle()).data()) - modelCenter[0]) / scalar);
 			out_vertices.push_back((*(point(fv_it.handle()).data() + 1) - modelCenter[1]) / scalar);
@@ -524,8 +602,30 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, 
 			uv.push_back(_mesh.texcoord2D(fv_it.handle())[0]);
 			uv.push_back(_mesh.texcoord2D(fv_it.handle())[1]);
 			//std::cout << "s = " << _mesh.texcoord2D(fv_it.handle())[0] << " t = " << _mesh.texcoord2D(fv_it.handle())[0] << std::endl;
+			if (minX > *(point(fv_it.handle()).data()))
+				minX = *(point(fv_it.handle()).data());
+			else if (maxX < *(point(fv_it.handle()).data()))
+				maxX = *(point(fv_it.handle()).data());
+			if (minY > *(point(fv_it.handle()).data()+1))
+				minY = *(point(fv_it.handle()).data()+1);
+			else if (maxY < *(point(fv_it.handle()).data()+1))
+				maxY = *(point(fv_it.handle()).data()+1);
+			if (minZ > *(point(fv_it.handle()).data()+2))
+				minZ = *(point(fv_it.handle()).data()+2);
+			else if (maxZ < *(point(fv_it.handle()).data()+2))
+				maxZ = *(point(fv_it.handle()).data()+2);
 		}
 	}
+	std::cout << maxX << ", " << minX << ", " << maxY << ", " << +minY << ", " << maxZ << ", " << minZ << endl;
+	std::cout << (maxX+minX)/2 << ", " << (maxY + minY) / 2 << ", " << (maxZ + minZ) / 2 << endl;
+	std::cout << out_vertices[0] << ", " << out_vertices[1] << ", " << out_vertices[2] << endl;
+	modelCenter.push_back((maxX + minX) / 2);
+	modelCenter.push_back((maxY + minY) / 2);
+	modelCenter.push_back((maxZ + minZ) / 2);
+
+	//modelCenter.push_back(out_vertices[0]);
+	//modelCenter.push_back(out_vertices[1]);
+	//modelCenter.push_back(out_vertices[2]);
 }
 
 void Tri_Mesh::delVert(VHandle vhandle) {
@@ -540,13 +640,13 @@ void Tri_Mesh::delVert(VHandle vhandle) {
 	delete_vertex(vhandle);
 	//repair
 	cout << "should add " << neighborVert.size() - 2 << " face" << endl;
-	
-	for (int index = 1; index < neighborVert.size()-1; index++) {
+
+	for (int index = 1; index < neighborVert.size() - 1; index++) {
 		cout << "add." << endl;
 		//important.  clockwise or get complex edge error
-		add_face(neighborVert[0],neighborVert[index+1], neighborVert[index]);
+		add_face(neighborVert[0], neighborVert[index + 1], neighborVert[index]);
 	}
-	
+
 	garbage_collection();
 	return;
 }
@@ -581,7 +681,10 @@ void Tri_Mesh::findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int fac
 		}
 	}
 	for (int i = 0; i < 3 && isFaceMatch; i++) vertex.push_back(point(min)[i]);
-	delVert(min);
+	
+	//delVert(min);
+	oneRingCollapse(min);
+
 	//if (isFaceMatch) printf("selected point is : %f %f %f\n", vertex[0], vertex[1], vertex[2]);
 }
 
@@ -1040,9 +1143,10 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		if (pq.empty()) break;
 		int id = pq.top();
 		EdgeHandle eh = simplified->edge_handle(id);
+
 		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 		VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));
-		
+
 		pq.pop();
 
 		if (!from.is_valid() || !remain.is_valid() || !eh.is_valid()) {
@@ -1098,6 +1202,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	return *simplified;
 }
 
+
 mat4x4 Tri_Mesh::calculateQ(VertexHandle vhandle) {
 	VVIter vv_it;
 	Point p(0, 0, 0);
@@ -1116,6 +1221,8 @@ mat4x4 Tri_Mesh::calculateQ(VertexHandle vhandle) {
 	float d = -a * v[0] - b * v[1] - c * v[2];
 	
 	mat4x4 q = mat4x4();
+
+
 	q[0][0] = a * a;
 	q[1][0] = a * b;
 	q[2][0] = a * c;
@@ -1137,6 +1244,167 @@ mat4x4 Tri_Mesh::calculateQ(VertexHandle vhandle) {
 	q[3][3] = d * d;
 
 	return q;
+}
+
+
+Tri_Mesh Tri_Mesh::averageSimplify() {
+	Tri_Mesh simplified = Tri_Mesh(*this);
+	//only update once
+	OpenMesh::VPropHandleT<bool> updated;
+	simplified.add_property(updated);
+
+	VIter v_it;
+	EIter e_it;
+	int vertexCount;
+	// label all vert not updated
+	for (vertexCount = 0, v_it = simplified.vertices_begin(); v_it != simplified.vertices_end(); ++v_it, vertexCount++) {
+		simplified.property(updated, *v_it) = false;
+	}
+	for (vertexCount = 0, v_it = simplified.vertices_begin(); v_it != simplified.vertices_end(); ++v_it, vertexCount++) {
+		if (simplified.property(updated, *v_it)) continue;
+		cout << "simplify." << endl;
+		VHandle pickedVert = v_it.handle();
+		simplified.property(updated, *v_it) = true;
+		/*
+		float newVertX = point(pickedVert)[0];
+		float newVertY = point(pickedVert)[1];
+		float newVertZ = point(pickedVert)[2];
+		int clusterCount = 1;
+		std::vector<VHandle> clusterVert = std::vector<VHandle>();
+		*/
+		oneRingCollapse(pickedVert);
+	}
+	cout << "simplify complete" << endl;
+	simplified.garbage_collection();
+	return simplified;
+}
+
+void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
+	vector<HHandle> edges = vector<HHandle>();
+	VIHIter vv_it;
+	//find one ring
+	for (vv_it = vih_iter(vhandle); vv_it; ++vv_it) {
+		cout << "collect." << endl;
+		edges.push_back(vv_it.handle());
+	}
+	//collapse one ring
+	if (edges.size() > 0) {
+		for (size_t i = 0; i <= edges.size() - 1; i++) {
+			if (i >= edges.size() || i < 0) { cout << "out of bound" << endl; break; }
+			//if (!edges[i].is_valid) { cout << "unvalid edge" << endl; break; }
+			cout << i << "collapse." << endl;
+			collapse(edges[i]);
+		}
+	}
+	garbage_collection();
+	return;
+}
+
+
+bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector<double> & p2, std::vector<double> & vertices)
+{
+	std::vector<int> faceBuffer;
+	//std::vector<TriVertex> vertexBuffer;
+	std::vector<TriLine> edgeBuffer;
+	TriVertex center1 = TriVertex(p1[0], p1[1], p1[2]);
+	TriVertex center2 = TriVertex(p2[0], p2[1], p2[2]);
+	for (int faceID = 0; faceID < vertices.size()/9; faceID++)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			// 每個面有三個vertexes
+			double vertexX = vertices[faceID * 9 + 3 * i];
+			double vertexY = vertices[faceID * 9 + 3 * i + 1];
+			double vertexZ = vertices[faceID * 9 + 3 * i + 2];
+			if (p1[0] == vertexX && p1[1] == vertexY && p1[2] == vertexZ)
+			{
+				//比對是否屬於該平面
+				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end())
+				{
+					faceBuffer.push_back(faceID);
+					//加入該平面其餘2點
+					TriVertex temp[2];
+					for (int k = 1; k < 3; k++)
+					{
+						int offset = (i + k) % 3;
+						double X = vertices[faceID * 9 + 3 * offset];
+						double Y = vertices[faceID * 9 + 3 * offset + 1];
+						double Z = vertices[faceID * 9 + 3 * offset + 2];
+						temp[k - 1] = TriVertex(X, Y, Z);
+					}
+					if (!(temp[0] == center2 || temp[1] == center2))
+					{
+						edgeBuffer.push_back(TriLine(temp[0], temp[1]));
+					}
+				}
+			}
+			if (p2[0] == vertexX && p2[1] == vertexY && p2[2] == vertexZ)
+			{
+				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end())
+				{
+					faceBuffer.push_back(faceID);
+					//加入該平面其餘2點
+					TriVertex temp[2];
+					for (int k = 1; k < 3; k++)
+					{
+						int offset = (i + k) % 3;
+						double X = vertices[faceID * 9 + 3 * offset];
+						double Y = vertices[faceID * 9 + 3 * offset + 1];
+						double Z = vertices[faceID * 9 + 3 * offset + 2];
+						temp[k - 1] = TriVertex(X, Y, Z);
+					}
+					if (!(temp[0] == center1 || temp[1] == center1))
+					{
+						edgeBuffer.push_back(TriLine(temp[0], temp[1]));
+					}
+				}
+			}
+		}
+	}
+	//face buffer
+	/*cout << "faceBuffer: ";
+	for (int i = 0; i < faceBuffer.size(); i++)
+	{
+		cout << faceBuffer[i] << ", ";
+	}
+	cout << endl;*/
+
+	//edge buffer
+	//cout << edgeBuffer.size() << endl;
+	for (int i = 0; i < edgeBuffer.size(); i++)
+	{
+		//cout << edgeBuffer[i] << endl;
+		glPointSize(8.0);
+		glColor3f(1.0, 0.0, 0.0);
+		glBegin(GL_POINTS);
+		for (OMT::VIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it) {
+			GLdouble po[3] = { edgeBuffer[i].p1.x, edgeBuffer[i].p1.y, edgeBuffer[i].p1.z };
+			glVertex3dv(po);
+		}
+		glEnd();
+	}
+	int rounds = 0;
+	int index = 0;
+	while (rounds < edgeBuffer.size())
+	{
+		rounds++;
+		TriLine line1 = edgeBuffer[index];
+		//find next line 
+		for (int i = 0; i < edgeBuffer.size(); i++)
+		{
+			if (edgeBuffer[i].p1 == line1.p2)
+			{
+				index = i;
+				break;
+			}
+		}
+		TriLine line2 = edgeBuffer[index];
+		double crossValue = TriLine::cross(line1, line2);
+		cout << "crossValue: " << crossValue << endl;
+		if(crossValue < 0)
+			return false;
+	}
+	return true;
 }
 
 
