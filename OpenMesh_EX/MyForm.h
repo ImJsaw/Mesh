@@ -834,6 +834,15 @@ namespace OpenMesh_EX {
 	private: System::Void skeletonExtractionToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (mesh != NULL) {
 			mesh->getSkeleton();
+			for (int i = 0; i < OBJ_NUM; i++) {
+				vertices[i].clear();
+				face[i] = 0;
+				meshUV[i].clear();
+			}
+			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0], modelCenter);
+			std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
+			std::cout << "face" << face[0] << std::endl;
+
 			hkoglPanelControl1->Invalidate();
 		}
 		else

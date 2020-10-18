@@ -533,7 +533,7 @@ void Tri_Mesh::Render_SolidWireframe() {
 	glPopAttrib();
 }
 //cache mesh to buffer
-void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, int & face, std::vector<double> & uv, std::vector<double> & modelCenter) {
+void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double>& out_vertices, int& face, std::vector<double>& uv, std::vector<double>& modelCenter) {
 	//to buffer , then shader
 	FIter f_it;
 	FVIter	fv_it;
@@ -567,15 +567,15 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, 
 			uv.push_back(_mesh.texcoord2D(fv_it.handle())[0]);
 			uv.push_back(_mesh.texcoord2D(fv_it.handle())[1]);
 			//std::cout << "s = " << _mesh.texcoord2D(fv_it.handle())[0] << " t = " << _mesh.texcoord2D(fv_it.handle())[0] << std::endl;
-			if (minX > *(point(fv_it.handle()).data()))
+			if (minX > * (point(fv_it.handle()).data()))
 				minX = *(point(fv_it.handle()).data());
 			else if (maxX < *(point(fv_it.handle()).data()))
 				maxX = *(point(fv_it.handle()).data());
-			if (minY > *(point(fv_it.handle()).data() + 1))
+			if (minY > * (point(fv_it.handle()).data() + 1))
 				minY = *(point(fv_it.handle()).data() + 1);
 			else if (maxY < *(point(fv_it.handle()).data() + 1))
 				maxY = *(point(fv_it.handle()).data() + 1);
-			if (minZ > *(point(fv_it.handle()).data() + 2))
+			if (minZ > * (point(fv_it.handle()).data() + 2))
 				minZ = *(point(fv_it.handle()).data() + 2);
 			else if (maxZ < *(point(fv_it.handle()).data() + 2))
 				maxZ = *(point(fv_it.handle()).data() + 2);
@@ -1187,9 +1187,9 @@ void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
 
 void Tri_Mesh::getSkeleton() {
 	cout << "get skeleton" << endl;
-	const int smoothTime = 3;
+	const int smoothTime = 1;
 	//model avg area
-	double a = 0;
+	double a = 1;
 
 	w0 = 1.0;
 	_WH = w0;
@@ -1197,16 +1197,19 @@ void Tri_Mesh::getSkeleton() {
 	for (int i = 0; i < smoothTime; i++) {
 
 		SparseMatrix<double> newV = getNewVert(_WL, _WH);
+		cout << "updating vert.." << endl;
 
 		//extract new vert from matrix.
 		for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
 			int index = v_it->idx();
 			Point p = Point();
+			//cout << newV.coeff(index, 0) << newV.coeff(index, 1) << newV.coeff(index, 2) << endl;
 			p[0] = newV.coeff(index, 0);
 			p[1] = newV.coeff(index, 1);
 			p[2] = newV.coeff(index, 2);
-			this->set_point(*v_it, p);
-			//cout << "update point " << index << "to " << p << endl;
+			point(v_it.handle()) = p;
+			//this->set_point(*v_it, p);
+			cout << "update point " << index << "to " << p << endl;
 		}
 		cout << "update." << endl;
 		//update wh wl
@@ -1218,6 +1221,7 @@ void Tri_Mesh::getSkeleton() {
 
 SparseMatrix<double> Tri_Mesh::getNewVert(double WL = 1, double WH = 1) {
 	SparseMatrix<double> L = calculateL();
+	cout << "WL:" << WL << ",WH:" << WH << endl;
 	// (WL) L   V' = 0
 	// WH		V' = WH V
 
@@ -1251,7 +1255,9 @@ SparseMatrix<double> Tri_Mesh::getNewVert(double WL = 1, double WH = 1) {
 	//solve linear system.
 	LeastSquaresConjugateGradient<SparseMatrix<double>>  solver;
 	solver.compute(Left);
-	return solver.solve(Right);
+	SparseMatrix<double> ans = solver.solve(Right);
+	cout << "solve complete" << endl;
+	return ans;
 
 }
 
