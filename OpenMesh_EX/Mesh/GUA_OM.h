@@ -271,12 +271,14 @@ public:
 	void Render_Wireframe();
 	void Render_Point();
 
+	bool isFirstLap;
+
 private:
 	double w0;
 	double _WL;
-	double _WH;
+	vector<double> _WH;
 	const double _SL = 2.0;
-	SparseMatrix<double> getNewVert(double WL, double WH);
+	vector<VectorXd> getNewVert(double WL, vector<double> WH);
 	SparseMatrix<double> calculateL();
 	SparseMatrix<double> prepareLaplacian();
 

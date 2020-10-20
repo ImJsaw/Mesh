@@ -694,6 +694,8 @@ bool ReadFile(std::string _fileName, Tri_Mesh *_mesh) {
 		isRead = true;
 	}
 	if (isRead) {
+		//reset
+		_mesh->isFirstLap = true;
 		// If the file did not provide vertex normals and mesh has vertex normal ,then calculate them
 		if (!opt.check(OpenMesh::IO::Options::VertexNormal) && _mesh->has_vertex_normals()) {
 			_mesh->update_normals();
@@ -1189,76 +1191,146 @@ void Tri_Mesh::getSkeleton() {
 	cout << "get skeleton" << endl;
 	const int smoothTime = 1;
 	//model avg area
-	double a = 1;
-
+	double avgArea;
+	//get avg face area
+	int faceCount = 0;
+	double areaSum = 0;
+	const int vertices = this->n_vertices();
+	OpenMesh::FPropHandleT<double> oriArea;
+	OpenMesh::FPropHandleT<double> curArea;
+	this->add_property(oriArea);
+	this->add_property(curArea);
 	w0 = 1.0;
-	_WH = w0;
-	_WL = 0.001 * a;
-	for (int i = 0; i < smoothTime; i++) {
+	//WH init
+	_WH.resize(vertices);
 
-		SparseMatrix<double> newV = getNewVert(_WL, _WH);
+	for (FIter f_it = this->faces_begin(); f_it != this->faces_end(); ++f_it) {
+		faceCount++;
+		double area = getArea(f_it.handle());
+		property(oriArea, f_it.handle()) = area;
+		property(curArea, f_it.handle()) = area;
+		areaSum += area;
+	}
+	avgArea = areaSum / (double)faceCount;
+
+	for (int i = 0; i < _WH.size(); i++)
+		_WH[i] = w0;
+	//WL init
+	_WL = 7000 * sqrt(avgArea);
+	
+	cout << "avg area:" << avgArea << "from " << faceCount << "face, area total" << areaSum << endl;
+
+	for (int i = 0; i < smoothTime; i++) {
+		cout << "smmoth" << i << endl;
+		//update area
+		for (FIter f_it = this->faces_begin(); f_it != this->faces_end(); ++f_it) {
+			double area = getArea(f_it.handle());
+			property(curArea, f_it.handle()) = area;
+		}
+
+		vector<VectorXd> newV = getNewVert(_WL, _WH);
 		cout << "updating vert.." << endl;
 
 		//extract new vert from matrix.
 		for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
 			int index = v_it->idx();
 			Point p = Point();
-			//cout << newV.coeff(index, 0) << newV.coeff(index, 1) << newV.coeff(index, 2) << endl;
-			p[0] = newV.coeff(index, 0);
-			p[1] = newV.coeff(index, 1);
-			p[2] = newV.coeff(index, 2);
+			p[0] = newV[0][index];
+			p[1] = newV[1][index];
+			p[2] = newV[2][index];
 			point(v_it.handle()) = p;
 			//this->set_point(*v_it, p);
-			cout << "update point " << index << "to " << p << endl;
+			//cout << "update point " << index << "to " << p << endl;
 		}
 		cout << "update." << endl;
-		//update wh wl
+		//update WH, WL
+		_WH.resize(vertices);
+		for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
+			int index = v_it->idx();
+			double originArea = 0;
+			double currentArea = 0;
+			//collect one ring
+			for (VFIter vf_it = vf_iter(v_it.handle()); vf_it; ++vf_it) {
+				originArea += property(oriArea, vf_it.handle());
+				currentArea += property(curArea, vf_it.handle());
+			}
+			if (currentArea == 0 || originArea == 0) {
+				cout << "!!!!!!!!! area zero error!!!!!!" << endl;
+				cout << "cur" << currentArea << "ori" << originArea << endl;
+			}
+			else {
+			_WH[index] = sqrt(originArea/currentArea);
+			}
+		}
 		_WL *= _SL;
-		_WH = 0;
 	}
 	return;
 }
 
-SparseMatrix<double> Tri_Mesh::getNewVert(double WL = 1, double WH = 1) {
+vector<VectorXd> Tri_Mesh::getNewVert(double WL, vector<double> WH) {
 	SparseMatrix<double> L = calculateL();
-	cout << "WL:" << WL << ",WH:" << WH << endl;
 	// (WL) L   V' = 0
 	// WH		V' = WH V
 
 	//
 	//reserve place for WH
-	SparseMatrix<double> Left(L.rows() + 1, L.cols());
+	SparseMatrix<double> Left(L.rows() * 2, L.cols());
 	Left.reserve(L.nonZeros() + L.cols());
-	//init left matrix
-	for (Index colIndex = 0; colIndex < L.cols(); ++colIndex) {
-		Left.startVec(colIndex);
-		for (SparseMatrix<double>::InnerIterator itL(L, colIndex); itL; ++itL)
-			Left.insertBack(itL.row(), colIndex) = itL.value() * WL;
-		Left.insertBack(L.rows() + 1, colIndex) = WH;
-	}
 
+	cout << "ready to assign" << this->n_vertices() <<"vert,"<<L.rows()<<"row,"<<L.cols()<<"col"<< endl;
+	//init left matrix
+	for (Index colIndex = 0; colIndex < L.cols(); colIndex++) {
+		//assign L
+		//cout << "assign L "<<colIndex << endl;
+		for (Index rowIndex = 0; rowIndex < L.rows(); rowIndex++) {
+			if (L.coeff(rowIndex, colIndex) * WL == 0) continue;
+			//cout << "insert " <<rowIndex<<","<< colIndex <<":"<< endl;
+			//cout << L.coeff(rowIndex, colIndex) * WL << endl;
+			Left.insert(rowIndex, colIndex) = L.coeff(rowIndex, colIndex) * WL;
+		}
+		//cout << "assign WH " << colIndex << endl;
+		//assign WH
+		Left.insert(L.rows() + colIndex, colIndex) = WH[colIndex];
+	}
+	cout << "ready compress" << endl;
+	Left.makeCompressed();
+	cout << "compressed" << endl;
 	//right matrix
 	const int vertices = this->n_vertices();
-	SparseMatrix<double> Right(vertices + 1, 3);
-	Right.reserve(vertices * 3);
-	//iterate all vert
+	vector<VectorXd> right;
+	right.resize(3);
+	right[0].resize(vertices * 2);
+	right[1].resize(vertices * 2);
+	right[2].resize(vertices * 2);
+
+	for (int i = 0; i < vertices; i++) {
+		right[0][i] = 0;
+		right[1][i] = 0;
+		right[2][i] = 0;
+	}
+
+	//iterate all vert, assign B
 	for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
 		int index = v_it->idx();
-		//first row 0 0 0, so offset 1
-		Right.coeffRef(index + 1, 0) = point(v_it.handle())[0] * WH;
-		Right.coeffRef(index + 1, 1) = point(v_it.handle())[1] * WH;
-		Right.coeffRef(index + 1, 2) = point(v_it.handle())[2] * WH;
-
+		//first  n row 0 , offset n
+		right[0][vertices + index] = point(v_it.handle())[0] * WH[index];
+		right[1][vertices + index] = point(v_it.handle())[1] * WH[index];
+		right[2][vertices + index] = point(v_it.handle())[2] * WH[index];
 	}
 
 	cout << "ready solve linear system..." << endl;
 	//solve linear system.
-	LeastSquaresConjugateGradient<SparseMatrix<double>>  solver;
-	solver.compute(Left);
-	SparseMatrix<double> ans = solver.solve(Right);
-	cout << "solve complete" << endl;
-	return ans;
+	SimplicialLDLT<SparseMatrix<double>> linearSolver;
 
+
+	linearSolver.compute(Left.transpose() * Left);
+	vector<VectorXd> newVert;
+	newVert.resize(3);
+	newVert[0] = linearSolver.solve(Left.transpose() * right[0]);
+	newVert[1] = linearSolver.solve(Left.transpose() * right[1]);
+	newVert[2] = linearSolver.solve(Left.transpose() * right[2]);
+	cout << "solve complete" << endl;
+	return newVert;
 }
 
 SparseMatrix<double> Tri_Mesh::calculateL() {
@@ -1289,6 +1361,7 @@ SparseMatrix<double> Tri_Mesh::calculateL() {
 		L.coeffRef(index, index) = sum / count;
 		//L[index][index] = sum / count;
 	}
+	cout << "L complete" << endl;
 	return L;
 }
 
@@ -1324,7 +1397,7 @@ double Tri_Mesh::getArea(const FHandle f) {
 	const Point& P = point(fv_it);  ++fv_it;
 	const Point& Q = point(fv_it);  ++fv_it;
 	const Point& R = point(fv_it);
-	return ((Q - P) % (R - P)).norm() * 0.5f * 0.3333f;
+	return ((Q - P) % (R - P)).norm() * 0.5f;
 }
 
 float Tri_Mesh::getCot(const HHandle eh) {
