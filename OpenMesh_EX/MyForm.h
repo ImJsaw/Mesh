@@ -776,7 +776,7 @@ namespace OpenMesh_EX {
 		std::cout << "face" << face[0] << std::endl;
 		objptr++;
 		hkoglPanelControl1->Invalidate();
-
+		
 		//test
 		std::vector<double> point1;
 		std::vector<double> point2;
@@ -791,6 +791,7 @@ namespace OpenMesh_EX {
 			point2.push_back(temp);
 		}
 		mesh->DetermineConcaveByTwoPoints(point1, point2, vertices[0]);
+		mesh->sumAreaWithSharedVertex(point1, vertices[0]);
 	}
 
 	//saveObj menu open

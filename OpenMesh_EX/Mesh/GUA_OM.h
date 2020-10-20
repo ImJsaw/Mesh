@@ -19,6 +19,7 @@ using namespace std;
 
 
 #include <Eigen/Sparse>
+#include <Eigen/Dense>
 #include <queue>
 #include <../OpenMesh_EX/Mesh/CustomUtils.h>
 using namespace Eigen;
@@ -247,6 +248,8 @@ public:
 
 	Tri_Mesh simplify(float rate, float threshold = 0);
 	Tri_Mesh averageSimplify();
+	double sumAreaWithSharedVertex(std::vector<double> & point, std::vector<double> & vertices);
+
 
 	//-------Edit Flag-------//
     bool                                       Delete_Flag;

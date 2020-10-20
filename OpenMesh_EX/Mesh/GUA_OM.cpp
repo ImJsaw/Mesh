@@ -5,6 +5,7 @@
 
 using namespace std;
 
+
 class TriVertex
 {
 public:
@@ -44,6 +45,7 @@ public:
 		return os;
 	}
 
+
 };
 class TriLine
 {
@@ -68,11 +70,21 @@ public:
 		os << "[" << line.p1 << " -> " << line.p2 <<  "]";
 		return os;
 	}
-	double static cross(TriLine & line1, TriLine& line2)
+	double static dot(TriLine & line1, TriLine& line2)
 	{
 		return line1.vector[0] * line2.vector[0] + line1.vector[1] * line2.vector[1] + line1.vector[2] * line2.vector[2];
 	}
-
+	double static cross(TriLine & line1, TriLine& line2)
+	{
+		Eigen::Vector3d w(line1.vector[0], line1.vector[1], line1.vector[2]);
+		Eigen::Vector3d v(line2.vector[0], line2.vector[1], line2.vector[2]);
+		Eigen::Vector3d ans = w.cross(v);
+		//std::cout << w.cross(v) << endl;
+		//cout << ans.cwiseAbs() << endl;
+		double returnValue = sqrt(ans[0] * ans[0] + ans[1] * ans[1] + ans[2] * ans[2]);
+		cout << returnValue << endl;
+		return returnValue;
+	}
 };
 
 
@@ -606,6 +618,7 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, 
 	//modelCenter.push_back(out_vertices[0]);
 	//modelCenter.push_back(out_vertices[1]);
 	//modelCenter.push_back(out_vertices[2]);
+
 }
 
 void Tri_Mesh::delVert(VHandle vhandle) {
@@ -1285,6 +1298,53 @@ void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
 	return;
 }
 
+double Tri_Mesh::sumAreaWithSharedVertex(std::vector<double> & point, std::vector<double> & vertices)
+{
+	std::vector<int> faceBuffer;
+	std::vector<TriLine> edgeBuffer;
+	TriVertex center1 = TriVertex(point[0], point[1], point[2]);
+	for (int faceID = 0; faceID < vertices.size() / 9; faceID++)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			// 每個面有三個vertexes
+			double vertexX = vertices[faceID * 9 + 3 * i];
+			double vertexY = vertices[faceID * 9 + 3 * i + 1];
+			double vertexZ = vertices[faceID * 9 + 3 * i + 2];
+			if (point[0] == vertexX && point[1] == vertexY && point[2] == vertexZ)
+			{
+				//比對是否屬於該平面
+				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end())
+				{
+					faceBuffer.push_back(faceID);
+					//加入該平面其餘2點
+					TriVertex temp[2];
+					for (int k = 1; k < 3; k++)
+					{
+						int offset = (i + k) % 3;
+						double X = vertices[faceID * 9 + 3 * offset];
+						double Y = vertices[faceID * 9 + 3 * offset + 1];
+						double Z = vertices[faceID * 9 + 3 * offset + 2];
+						temp[k - 1] = TriVertex(X, Y, Z);
+					}
+					edgeBuffer.push_back(TriLine(center1, temp[0]));
+					edgeBuffer.push_back(TriLine(center1, temp[1]));
+				}
+			}
+		}
+		
+	}
+	cout << "faceBuffer: " << faceBuffer.size() << endl;
+	cout << "edgeBuffer: " << edgeBuffer.size() << endl;
+	double ans = 0;
+	for (int i = 0; i < edgeBuffer.size(); i=i+2)
+	{
+		cout << "edgeBuffer: " << edgeBuffer[i] << endl;
+		ans += TriLine::cross(edgeBuffer[i], edgeBuffer[i + 1]);
+		//cout << ans << endl;
+	}
+	return ans/2.0;
+}
 
 bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector<double> & p2, std::vector<double> & vertices)
 {
@@ -1384,7 +1444,7 @@ bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector
 			}
 		}
 		TriLine line2 = edgeBuffer[index];
-		double crossValue = TriLine::cross(line1, line2);
+		double crossValue = TriLine::dot(line1, line2);
 		cout << "crossValue: " << crossValue << endl;
 		if(crossValue < 0)
 			return false;
