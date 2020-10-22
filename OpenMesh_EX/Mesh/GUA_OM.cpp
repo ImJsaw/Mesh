@@ -1076,21 +1076,17 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			cout << endl;
 		}
 		*/
-		// mat4x4 newQ = simplified->property(QMat, to) + simplified->property(QMat, from);
-		mat4x4 newQ = calculateQ(to) + calculateQ(from);
+		mat4x4 newQ = simplified->property(QMat, to) + simplified->property(QMat, from);
+		// mat4x4 newQ = calculateQ(to) + calculateQ(from);
 		mat4x4 m = mat4x4(newQ);
-		m[1][0] = m[0][1];
-		m[2][0] = m[0][2];
-
-		m[2][1] = m[1][2];
 		
-		m[3][0] = 0;
-		m[3][1] = 0;
-		m[3][2] = 0;
+		m[0][3] = 0;
+		m[1][3] = 0;
+		m[2][3] = 0;
 		m[3][3] = 1;
 
 		// check invertible??
-		vec4 newV = m._inverse() * vec4(0, 0, 0, 1);
+		vec4 newV = vec4(0, 0, 0, 1) * m._inverse();
 		Point newP = Point(newV.x, newV.y, newV.z);
 		cout << "newP: " << newV.x << " " << newV.y << " " << newV.z << endl;
 
@@ -1180,8 +1176,9 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			simplified->collapse(halfedge_handle(eh, 0));
 			
 			// new point position
-			// point(remain) = simplified->property(newPoint, eh);
-			point(remain) = (point(from) + point(remain)) / 2;
+			point(remain) = simplified->property(newPoint, eh);
+			cout << "FINAL POINT: " << point(remain) << endl;
+			// point(remain) = (point(from) + point(remain)) / 2;
 			from.invalidate();
 
 			// update the cost of connected edges and push them back to the pq
