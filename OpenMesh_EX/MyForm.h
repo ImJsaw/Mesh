@@ -677,7 +677,7 @@ namespace OpenMesh_EX {
 				mesh->findNearestVert(*mesh, mousePosition, pixel.r - 1, selectedVertices, MVP, eyedistance);
 				//update mesh
 				
-				mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0], modelCenter);
+				mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
 				std::cout << "meshUV.size() : " << meshUV[objptr].size() << "vertices.size()" << vertices[objptr].size() << endl;
 				std::cout << "face" << face[objptr] << std::endl;
 			}
@@ -776,8 +776,8 @@ namespace OpenMesh_EX {
 
 		if (ReadFile(filename, mesh)) std::cout << filename << std::endl;
 		isLoad = true;
-
-		mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0], modelCenter);
+		mesh->normalizeModel();
+		mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
 		std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
 		std::cout << "face" << face[0] << std::endl;
 		objptr++;
@@ -830,7 +830,7 @@ namespace OpenMesh_EX {
 				face[i] = 0;
 				meshUV[i].clear();
 			}
-			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0], modelCenter);
+			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
 			std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
 			std::cout << "face" << face[0] << std::endl;
 
