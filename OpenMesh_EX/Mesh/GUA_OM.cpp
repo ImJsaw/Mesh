@@ -1009,8 +1009,8 @@ void Tri_Mesh::loadToBufferPatch(std::vector<double> & out_vertices, int & face,
 
 Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	Tri_Mesh* simplified = this;
-	OpenMesh::EPropHandleT<float> cost;
-	OpenMesh::VPropHandleT<mat4x4> QMat;
+	OpenMesh::EPropHandleT<double> cost;
+	OpenMesh::VPropHandleT<Matrix4d> QMat;
 	OpenMesh::EPropHandleT<Point> newPoint;
 	simplified->add_property(cost);
 	simplified->add_property(QMat);
@@ -1024,27 +1024,52 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		cout << "TO: " << point(to) << endl;
 		simplified->property(QMat, to) = calculateQ(point(to));
 		for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+		cout << simplified->property(QMat, to)[j][i] << " ";
+		}
+		cout << endl;
+		}
+		*/
+		Matrix4d newQ = simplified->property(QMat, to) + simplified->property(QMat, from);
+		// mat4x4 newQ = calculateQ(to) + calculateQ(from);
+		Matrix4d m = Matrix4d(newQ);
+
+		m(3, 0) = 0.0f;
+		m(3, 1) = 0.0f;
+		m(3, 2) = 0.0f;
+		m(3, 3) = 1.0f;
+
+		cout << "m: " << endl;
+		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {
-				cout << simplified->property(QMat, to)[j][i] << " ";
+				cout << m(i, j) << " ";
 			}
 			cout << endl;
 		}
-		*/
-		mat4x4 newQ = simplified->property(QMat, to) + simplified->property(QMat, from);
-		// mat4x4 newQ = calculateQ(to) + calculateQ(from);
-		mat4x4 m = mat4x4(newQ);
-		
-		m[0][3] = 0;
-		m[1][3] = 0;
-		m[2][3] = 0;
-		m[3][3] = 1;
+		Matrix4d inv = m.completeOrthogonalDecomposition().pseudoInverse();
+		cout << "inverse: " << m.determinant() << endl;
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				cout << inv(i, j) << " ";
+			}
+			cout << endl;
+		}
 
 		// check invertible??
-		vec4 newV = vec4(0, 0, 0, 1) * m._inverse();
-		Point newP = Point(newV.x, newV.y, newV.z);
-		cout << "newP: " << newV.x << " " << newV.y << " " << newV.z << endl;
+		Vector4d newV;
+		if (m.determinant() == 0.0f) {
+			Point temp = (point(to) + point(from)) / 2;
+			newV = Vector4d(temp[0], temp[1], temp[2], 1);
+		}
+		else {
+			newV= m.inverse() * Vector4d(0.0f, 0.0f, 0.0f, 1.0f);
+		}
+		
+		Point newP = Point(newV(0), newV(1), newV(2));
+		cout << "newP: " << newV(0) << " " << newV(1) << " " << newV(2) << endl;
 
-		auto cur_cost = (newV * newQ * newV)[0];
+		auto cur_cost = (newV.transpose() * newQ * newV)(0, 0);
+		// cout << cur_cost << endl;
 		simplified->property(cost, eh) = cur_cost;
 		simplified->property(newPoint, eh) = newP;
 	};
@@ -1055,15 +1080,15 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 
 	// calculate the Q matrix for all vertices
 	for (vertexCount = 0, v_it = simplified->vertices_begin(); v_it != simplified->vertices_end(); ++v_it, vertexCount++) {
-		mat4x4 q = calculateQ(v_it.handle());
+		Matrix4d q = calculateQ(v_it.handle());
 		simplified->property(QMat, *v_it) = q;
 	}
 
 	struct CompareCost {
 		Tri_Mesh* mesh;
-		OpenMesh::EPropHandleT<float>* cost;
+		OpenMesh::EPropHandleT<double>* cost;
 
-		CompareCost(Tri_Mesh* _mesh, OpenMesh::EPropHandleT<float>* _cost) {
+		CompareCost(Tri_Mesh* _mesh, OpenMesh::EPropHandleT<double>* _cost) {
 			mesh = _mesh;
 			cost = _cost;
 		}
@@ -1077,7 +1102,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	};
 
 	CompareCost compare = CompareCost(simplified, &cost);
-	
+
 	_priority_queue<int, vector<int>, CompareCost> pq(compare);
 
 	if (threshold == 0) {
@@ -1156,7 +1181,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 }
 
 
-mat4x4 Tri_Mesh::calculateQ(VertexHandle vhandle) {
+Matrix4d Tri_Mesh::calculateQ(VertexHandle vhandle) {
 	VVIter vv_it;
 	Point p(0, 0, 0);
 
@@ -1168,33 +1193,33 @@ mat4x4 Tri_Mesh::calculateQ(VertexHandle vhandle) {
 
 	Point v = point(vhandle);
 
-	float a = p[0];
-	float b = p[1];
-	float c = p[2];
-	float d = -a * v[0] - b * v[1] - c * v[2];
-	
-	mat4x4 q = mat4x4();
+	double a = p[0];
+	double b = p[1];
+	double c = p[2];
+	double d = -a * v[0] - b * v[1] - c * v[2];
+
+	Matrix4d q = Matrix4d();
 
 
-	q[0][0] = a * a;
-	q[0][1] = a * b;
-	q[0][2] = a * c;
-	q[0][3] = a * d;
+	q(0, 0) = a * a;
+	q(0, 1) = a * b;
+	q(0, 2) = a * c;
+	q(0, 3) = a * d;
 
-	q[1][0] = a * b;
-	q[1][1] = b * b;
-	q[1][2] = b * c;
-	q[1][3] = b * d;
+	q(1, 0) = a * b;
+	q(1, 1) = b * b;
+	q(1, 2) = b * c;
+	q(1, 3) = b * d;
 
-	q[2][0] = a * c;
-	q[2][1] = c * b;
-	q[2][2] = c * c;
-	q[2][3] = c * d;
+	q(2, 0) = a * c;
+	q(2, 1) = c * b;
+	q(2, 2) = c * c;
+	q(2, 3) = c * d;
 
-	q[3][0] = a * d;
-	q[3][1] = d * b;
-	q[3][2] = d * c;
-	q[3][3] = d * d;
+	q(3, 0) = a * d;
+	q(3, 1) = d * b;
+	q(3, 2) = d * c;
+	q(3, 3) = d * d;
 
 	return q;
 }

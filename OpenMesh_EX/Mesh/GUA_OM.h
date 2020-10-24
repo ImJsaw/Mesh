@@ -19,6 +19,7 @@ using namespace std;
 
 
 #include <Eigen/Sparse>
+#include <Eigen/Dense>
 #include <queue>
 #include <../OpenMesh_EX/Mesh/CustomUtils.h>
 using namespace Eigen;
@@ -240,7 +241,7 @@ public:
 	void findNearestPoint(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex);
 	void findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex , mat4 MVP , double dis);
 	void delVert(VHandle vhandle);
-	mat4x4 calculateQ(VertexHandle vhandle);
+	Matrix4d calculateQ(VertexHandle vhandle);
 
 	void oneRingCollapse(VHandle vhandle);
 	bool DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector<double> & p2, std::vector<double> & vertices);
