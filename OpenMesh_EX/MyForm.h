@@ -543,11 +543,11 @@ namespace OpenMesh_EX {
 			//set MVP matrix
 			float horizonAngle = DOR(eyeAngleX);
 			float verticleAngle = DOR(eyeAngleY);
-			ViewMatrix = lookAt(
+			/*ViewMatrix = lookAt(
 				glm::vec3(eyedistance*cos(horizonAngle)*cos(verticleAngle), eyedistance*sin(verticleAngle), eyedistance*sin(horizonAngle)*cos(verticleAngle)),
 				glm::vec3(0, 0, 0), // and looks at the origin
 				glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
-			);
+			);*/
 			/*ViewMatrix = lookAt(
 				glm::vec3(modelCenter[0], modelCenter[1], modelCenter[2] + eyedistance ),
 				glm::vec3(modelCenter[0], modelCenter[1], modelCenter[2]), // and looks at the origin

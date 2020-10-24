@@ -1384,7 +1384,7 @@ void Tri_Mesh::normalizeModel()
 
 	double scalar = std::max(maxX - minX, maxY - minY);
 	scalar = std::max(scalar, maxZ - minZ);
-	double center[3] = { (maxX - minX) / 2, (maxY - minY) / 2, (maxZ - minZ) / 2 };
+	double center[3] = { (maxX + minX) / 2, (maxY + minY) / 2, (maxZ + minZ) / 2 };
 	for (VertexIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it)
 	{
 		double posX = *(point(v_it.handle()).data());
