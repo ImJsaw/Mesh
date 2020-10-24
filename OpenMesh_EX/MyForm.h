@@ -558,11 +558,12 @@ namespace OpenMesh_EX {
 			//	glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
 			//);
 			ViewMatrix = lookAt(
-				glm::vec3(modelCenter[0], modelCenter[1], modelCenter[2] + eyedistance),
-				glm::vec3(modelCenter[0], modelCenter[1], modelCenter[2]), // and looks at the origin
+				glm::vec3(eyedistance, 0, 0),
+				glm::vec3(0, 0, 0), // and looks at the origin
 				glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
 			);
-			mat4 Model = translate(translateX, translateY, 0.0f) * rotate(horizonAngle, float(modelCenter[0]), 1.0f, float(modelCenter[2]));
+			//mat4 Model = translate(translateX, translateY, 0.0f) * rotate(horizonAngle, float(modelCenter[0]), 1.0f, float(modelCenter[2]));
+			mat4 Model = translate(0.0f, 0.0f, 0.0f) * rotate(horizonAngle, 0.0f, 1.0f, 0.0f) * rotate(verticleAngle, 1.0f, 0.0f, 0.0f);
 			//MVP = Model * Projection * ViewMatrix;//translate via screen viewport, so model last
 
 			MVP = Projection * ViewMatrix * Model;
@@ -680,7 +681,7 @@ namespace OpenMesh_EX {
 				mesh->findNearestVert(*mesh, mousePosition, pixel.r - 1, selectedVertices, MVP, eyedistance);
 				//update mesh
 
-				mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0], modelCenter);
+				mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
 				std::cout << "meshUV.size() : " << meshUV[objptr].size() << "vertices.size()" << vertices[objptr].size() << endl;
 				std::cout << "face" << face[objptr] << std::endl;
 			}
@@ -779,8 +780,8 @@ namespace OpenMesh_EX {
 
 		if (ReadFile(filename, mesh)) std::cout << filename << std::endl;
 		isLoad = true;
-
-		mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0], modelCenter);
+		mesh->normalizeModel();
+		mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
 		std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
 		std::cout << "face" << face[0] << std::endl;
 		objptr++;
@@ -839,7 +840,7 @@ namespace OpenMesh_EX {
 				face[i] = 0;
 				meshUV[i].clear();
 			}
-			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0], modelCenter);
+			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
 			std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
 			std::cout << "face" << face[0] << std::endl;
 

@@ -533,27 +533,18 @@ void Tri_Mesh::Render_SolidWireframe() {
 	glPopAttrib();
 }
 //cache mesh to buffer
-void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double>& out_vertices, int& face, std::vector<double>& uv, std::vector<double>& modelCenter) {
+void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, int & face, std::vector<double> & uv) {
 	//to buffer , then shader
 	FIter f_it;
 	FVIter	fv_it;
 	out_vertices.clear();
-	modelCenter.clear();
 	face = 0;
 	/*std::cout << "mesh support : " << std::endl;
 	std::cout << "  " << "texcoords" << ": " << ((_mesh.has_vertex_texcoords1D()) ? "yes\n" : "no\n") << std::endl;
 	std::cout << "  " << "texcoords" << ": " << ((_mesh.has_vertex_texcoords2D()) ? "yes\n" : "no\n") << std::endl;
 	std::cout << "  " << "texcoords" << ": " << ((_mesh.has_vertex_texcoords3D()) ? "yes\n" : "no\n") << std::endl;
 	std::cout << "  " << "normal" << ": " << ((_mesh.has_vertex_normals()) ? "yes\n" : "no\n") << std::endl;*/
-	f_it = faces_begin();
-	fv_it = fv_iter(f_it);
-	double minX = *(point(fv_it.handle()).data());
-	double minY = *(point(fv_it.handle()).data() + 1);
-	double minZ = *(point(fv_it.handle()).data() + 2);
-	double maxX = *(point(fv_it.handle()).data());
-	double maxY = *(point(fv_it.handle()).data() + 1);
-	double maxZ = *(point(fv_it.handle()).data() + 2);
-	//std::cout << maxX << ", " << maxY << ", " << maxZ << endl;
+
 	for (f_it = faces_begin(); f_it != faces_end(); ++f_it) {
 		face++;
 		fv_it = fv_iter(f_it);
@@ -567,30 +558,10 @@ void Tri_Mesh::loadToBuffer(Tri_Mesh _mesh, std::vector<double>& out_vertices, i
 			uv.push_back(_mesh.texcoord2D(fv_it.handle())[0]);
 			uv.push_back(_mesh.texcoord2D(fv_it.handle())[1]);
 			//std::cout << "s = " << _mesh.texcoord2D(fv_it.handle())[0] << " t = " << _mesh.texcoord2D(fv_it.handle())[0] << std::endl;
-			if (minX > * (point(fv_it.handle()).data()))
-				minX = *(point(fv_it.handle()).data());
-			else if (maxX < *(point(fv_it.handle()).data()))
-				maxX = *(point(fv_it.handle()).data());
-			if (minY > * (point(fv_it.handle()).data() + 1))
-				minY = *(point(fv_it.handle()).data() + 1);
-			else if (maxY < *(point(fv_it.handle()).data() + 1))
-				maxY = *(point(fv_it.handle()).data() + 1);
-			if (minZ > * (point(fv_it.handle()).data() + 2))
-				minZ = *(point(fv_it.handle()).data() + 2);
-			else if (maxZ < *(point(fv_it.handle()).data() + 2))
-				maxZ = *(point(fv_it.handle()).data() + 2);
 		}
+		//cout << "face: " << out_vertices[out_vertices.size() - 3] << " " << out_vertices[out_vertices.size() - 2] << " " << out_vertices[out_vertices.size() - 1] << endl;
 	}
-	std::cout << maxX << ", " << minX << ", " << maxY << ", " << +minY << ", " << maxZ << ", " << minZ << endl;
-	std::cout << (maxX + minX) / 2 << ", " << (maxY + minY) / 2 << ", " << (maxZ + minZ) / 2 << endl;
-	std::cout << out_vertices[0] << ", " << out_vertices[1] << ", " << out_vertices[2] << endl;
-	modelCenter.push_back((maxX + minX) / 2);
-	modelCenter.push_back((maxY + minY) / 2);
-	modelCenter.push_back((maxZ + minZ) / 2);
 
-	//modelCenter.push_back(out_vertices[0]);
-	//modelCenter.push_back(out_vertices[1]);
-	//modelCenter.push_back(out_vertices[2]);
 }
 
 void Tri_Mesh::delVert(VHandle vhandle) {
@@ -1550,4 +1521,40 @@ bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector
 	return true;
 }
 
+
+void Tri_Mesh::normalizeModel()
+{
+	double maxX = *(point(vertices_begin().handle()).data());
+	double minX = *(point(vertices_begin().handle()).data());
+	double maxY = *(point(vertices_begin().handle()).data() + 1);
+	double minY = *(point(vertices_begin().handle()).data() + 1);
+	double maxZ = *(point(vertices_begin().handle()).data() + 2);
+	double minZ = *(point(vertices_begin().handle()).data() + 2);
+
+	for (VertexIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it)
+	{
+		double posX = *(point(v_it.handle()).data());
+		double posY = *(point(v_it.handle()).data() + 1);
+		double posZ = *(point(v_it.handle()).data() + 2);
+		maxX = std::max(posX, maxX);
+		minX = std::min(posX, minX);
+		maxY = std::max(posY, maxY);
+		minY = std::min(posY, minY);
+		maxZ = std::max(posZ, maxZ);
+		minZ = std::min(posZ, minZ);
+	}
+
+	double scalar = std::max(maxX - minX, maxY - minY);
+	scalar = std::max(scalar, maxZ - minZ);
+	double center[3] = { (maxX + minX) / 2, (maxY + minY) / 2, (maxZ + minZ) / 2 };
+	for (VertexIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it)
+	{
+		double posX = *(point(v_it.handle()).data());
+		double posY = *(point(v_it.handle()).data() + 1);
+		double posZ = *(point(v_it.handle()).data() + 2);
+		Point newPoint((posX - center[0]) / scalar, (posY - center[1]) / scalar, (posZ - center[2]) / scalar);
+		set_point(*v_it, newPoint);
+		//cout << "Vertex: " << newPoint << endl;
+	}
+}
 

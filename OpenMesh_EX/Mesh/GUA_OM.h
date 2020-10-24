@@ -235,13 +235,14 @@ public:
 		request_vertex_texcoords2D();
 	
 	}
-	void loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, int & face, std::vector<double> & uv, std::vector<double> & modelCenter);
+	void loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, int & face, std::vector<double> & uv);
 	void loadToBufferPatch(std::vector<double> & out_vertices, int & face, std::vector<int> selected, Tri_Mesh & patch);
 	void findNearestPoint(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex);
 	void findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex , mat4 MVP , double dis);
 	void delVert(VHandle vhandle);
 	void oneRingCollapse(VHandle vhandle);
 	bool DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector<double> & p2, std::vector<double> & vertices);
+	void normalizeModel();
 	//skeleton//
 	float getCot(const HHandle e);
 	double getArea(const FHandle f);
