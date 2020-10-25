@@ -1160,7 +1160,7 @@ void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
 
 void Tri_Mesh::getSkeleton() {
 	cout << "get skeleton" << endl;
-	const int smoothTime = 1;
+	const int smoothTime = 5;
 	//model avg area
 	double avgArea;
 	//get avg face area
@@ -1187,7 +1187,7 @@ void Tri_Mesh::getSkeleton() {
 	for (int i = 0; i < _WH.size(); i++)
 		_WH[i] = w0;
 	//WL init
-	_WL = 7000 * sqrt(avgArea);
+	_WL = 700 * sqrt(avgArea);
 	
 	cout << "avg area:" << avgArea << "from " << faceCount << "face, area total" << areaSum << endl;
 
@@ -1329,7 +1329,7 @@ SparseMatrix<double> Tri_Mesh::calculateL() {
 		}
 		// i,i
 		//cout << " L[" << index << "][" << index << "]=" << sum / count << endl;
-		L.coeffRef(index, index) = sum / count;
+		L.coeffRef(index, index) = sum;
 		//L[index][index] = sum / count;
 	}
 	cout << "L complete" << endl;
