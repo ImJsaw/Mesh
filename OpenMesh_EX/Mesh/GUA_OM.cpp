@@ -604,6 +604,7 @@ void Tri_Mesh::delVert(VHandle vhandle) {
 
 //find choosed vert via choosed face
 void Tri_Mesh::findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex, mat4 MVP, double dis) {
+	return;
 	FIter f_it;
 	FVIter fv_it;
 	VHandle min;
@@ -1029,7 +1030,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		m(3, 2) = 0.0f;
 		m(3, 3) = 1.0f;
 
-		VectorXd x = m.lu().solve(Vector4d(0, 0, 0, 1));
+		VectorXd x = m.fullPivLu().solve(Vector4d(0, 0, 0, 1));
 
 		Vector4d newV;
 		//if (m.determinant() == 0.0f) {
@@ -1041,7 +1042,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		//}
 		
 		Point newP = Point(newV(0), newV(1), newV(2));
-		cout << newP << "\n" << x << endl;
+		//cout << newP << "\n" << x << endl;
 
 		auto cur_cost = (newV.transpose() * newQ * newV)(0, 0);
 		// cout << cur_cost << endl;
@@ -1098,42 +1099,48 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 
 		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 		VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));
-
+		
 		pq.pop();
 
 		if (!from.is_valid() || !remain.is_valid() || !eh.is_valid()) {
 			continue;
 		}
-		
+
 		if (is_collapse_ok(halfedge_handle(eh, 0))) {
 			cout << eh.idx() << " is going to be removed" << endl;
+			cout << simplified->property(cost, eh) << endl;
+
+			RollbackInfo* info1 = new RollbackInfo(from.idx(), this);
+			RollbackInfo* info2 = new RollbackInfo(remain.idx(), this);
+			
 			// remove connected edges in pq
 			VertexEdgeIter ve_it = simplified->ve_iter(from);
-			cout << "initial vertex num: " << pq.size() << endl;
 			for (; ve_it.is_valid(); ++ve_it) {
 				printf("target id: %d\n", ve_it.handle().idx());
 				if (!pq.remove(ve_it.handle().idx())) {
-					cout << "Error!" << endl;
+				//	cout << "Error!" << endl;
 				}
-				else cout << "success" << endl;
+				//else cout << "success" << endl;
 			}
 
 			ve_it = simplified->ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
 				if (!pq.remove(ve_it.handle().idx())) {
-					cout << "Error!" << endl;
+				//	cout << "Error!" << endl;
 				}
-				else cout << "success" << endl;
+				//else cout << "success" << endl;
 			}
 
 			// collapse
 			simplified->collapse(halfedge_handle(eh, 0));
-			
+
 			// new point position
 			point(remain) = simplified->property(newPoint, eh);
-			cout << "FINAL POINT: " << point(remain) << endl;
-			// point(remain) = (point(from) + point(remain)) / 2;
+			cout << "FINAL POINT: " << point(remain)<< " score: "<< simplified->property(cost, eh) << endl;
 			from.invalidate();
+
+			DecimationLog* log = new DecimationLog(info1, info2, point(remain));
+			_deque.pushNewLog(log);
 
 			// update the cost of connected edges and push them back to the pq
 			ve_it = simplified->ve_iter(remain);
@@ -1143,6 +1150,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			}
 
 			vertexCount--;
+			_deque.toDecimate();
 		}
 
 	}
@@ -1160,14 +1168,28 @@ Matrix4d Tri_Mesh::calculateQ(VertexHandle vhandle) {
 	VVIter vv_it;
 	Point p(0, 0, 0);
 
+/*
 	for (vv_it = vv_iter(vhandle); vv_it.is_valid(); ++vv_it) {
 		p += normal(*vv_it);
+		cout << normal(*vv_it) << endl;
 	}
 
 	p.normalize();
 
-	Point v = point(vhandle);
+	
+	cout << "vertex normal: " << p << endl;
+*/
+	p = Point(0, 0, 0);
+	for (VFIter vf_it = vf_iter(vhandle); vf_it.is_valid(); ++vf_it) {
+	p += normal(vf_it);
+	cout << normal(*vf_it) << endl;
+	}
 
+	p.normalize();
+	cout << "face normal: " << p << endl;
+	
+	Point v = point(vhandle);
+	
 	double a = p[0];
 	double b = p[1];
 	double c = p[2];
@@ -1261,7 +1283,7 @@ bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector
 	std::vector<TriLine> edgeBuffer;
 	TriVertex center1 = TriVertex(p1[0], p1[1], p1[2]);
 	TriVertex center2 = TriVertex(p2[0], p2[1], p2[2]);
-	for (int faceID = 0; faceID < vertices.size()/9; faceID++)
+	for (int faceID = 0; faceID < vertices.size() / 9; faceID++)
 	{
 		for (int i = 0; i < 3; i++)
 		{
@@ -1318,7 +1340,7 @@ bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector
 	/*cout << "faceBuffer: ";
 	for (int i = 0; i < faceBuffer.size(); i++)
 	{
-		cout << faceBuffer[i] << ", ";
+	cout << faceBuffer[i] << ", ";
 	}
 	cout << endl;*/
 
@@ -1354,11 +1376,12 @@ bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector
 		TriLine line2 = edgeBuffer[index];
 		double crossValue = TriLine::cross(line1, line2);
 		cout << "crossValue: " << crossValue << endl;
-		if(crossValue < 0)
+		if (crossValue < 0)
 			return false;
 	}
 	return true;
 }
+
 
 void Tri_Mesh::normalizeModel()
 {
@@ -1396,3 +1419,175 @@ void Tri_Mesh::normalizeModel()
 	}
 }
 
+
+// Get Decimation Logs from the deque and decimate for k times.
+// Return if k-times decimation is finished or the log is empty.
+void Tri_Mesh::Decimate(int k) {
+	while (k--) {
+		DecimationLog* log = _deque.toDecimate();
+		if (log == nullptr) {
+			cout << "NULL" << endl;
+			return;
+		}
+
+		VertexIter v_it;
+		VertexEdgeIter ve_it;
+		bool found = false;
+		Point p1 = log->collapsePoint->p;
+		Point p2 = log->remainPoint->p;
+
+		// Find the corresponding edge to collapse
+		for (v_it = vertices_begin(); v_it != vertices_end(); ++v_it) {
+			if (equal(point(v_it.handle()), p1)) {
+				for (ve_it = ve_iter(v_it); ve_it.is_valid(); ++ve_it) {
+					VertexHandle v1 = from_vertex_handle(halfedge_handle(ve_it, 0));
+					VertexHandle v2 = to_vertex_handle(halfedge_handle(ve_it, 0));
+
+					// Determine the halfedge direction
+					if (equal(point(v1), p1) && equal(point(v2), p2)) {
+						found = true;
+						cout << "collapse" << endl;
+						collapse(halfedge_handle(ve_it, 0));
+						point(v2) = log->remainPointNewPosition;
+						break;
+					}
+					else if ((equal(point(v1), p2) && equal(point(v2), p1))) {
+						found = true;
+						cout << "collapse" << endl;
+						collapse(halfedge_handle(ve_it, 1));
+						point(v1) = log->remainPointNewPosition;
+						break;
+					}
+				}
+			}
+			if (found) break;
+		}
+	}
+	cout << "FINISH" << endl;
+}
+
+
+// Get Recovering Logs from the deque and recover for k times.
+// Return if k-times recovering is finished or the log is empty.
+void Tri_Mesh::Recover(int k) {
+	while (k--) {
+		DecimationLog* log = _deque.toRecover();
+		if (log == nullptr) {
+			cout << "NULL" << endl;
+			return;
+		}
+
+		vector<vector<VertexHandle>> allFaces;
+		VertexIter v_it;
+		Point target = log->remainPointNewPosition;
+		for (v_it = vertices_begin(); v_it != vertices_end(); ++v_it) {
+
+			// Find the remain vertex after halfedge collapse
+			if (equal(point(v_it.handle()), target)) {
+
+				// Create two new vertices
+				VertexHandle recoverV = add_vertex(log->collapsePoint->p);
+				VertexHandle remain = add_vertex(log->remainPoint->p);
+
+				// Recover all faces formed with the collapsed point
+				int n = log->collapsePoint->neighborPos.size();
+				for (int i = 0; i < n; i++) {
+					vector<VertexHandle> face;
+					face.push_back(recoverV);
+
+					// There is no vertex at original position of the remain point, 
+					// so we initialize the vertex handle with this value,
+					// or we will miss the remain vertex
+					double minL = (point(remain)- log->collapsePoint->neighborPos[i]).length();
+					VertexHandle hd = remain, hd1 = remain;
+
+					// Find which points we want to form a face
+					for (VVIter vv_it = vv_iter(v_it); vv_it.is_valid(); ++vv_it) {
+						double l = (point(vv_it) - log->collapsePoint->neighborPos[i]).length();
+						if (l < minL) {
+							minL = l;
+							hd = vv_it.handle();
+						}
+					}
+					face.push_back(hd);
+
+					minL = (point(remain) - log->collapsePoint->neighborPos[(i + 1) % n]).length();
+					for (VVIter vv_it = vv_iter(v_it); vv_it.is_valid(); ++vv_it) {
+						double l = (point(vv_it) - log->collapsePoint->neighborPos[(i + 1) % n]).length();
+						if (l < minL) {
+							minL = l;
+							hd1 = vv_it.handle();
+						}
+					}
+					face.push_back(hd1);
+
+					if (face.size() != 3) {
+						cout << "ERROR SIZE " << face.size() << endl;
+						continue;
+					}
+					else {
+						// save the result to a temporary vector
+						allFaces.push_back(face);
+					}
+				}
+
+
+				// Recover all faces formed with the remain point
+				n = log->remainPoint->neighborPos.size();
+				for (int i = 0; i < n; i++) {
+					vector<VertexHandle> face;
+					face.push_back(remain);
+
+					// There is no edge connected with the recovered vertex, 
+					// so we initialize the vertex handle with this value,
+					// or we will miss the recovered vertex
+					double minL = (point(recoverV) - log->remainPoint->neighborPos[i]).length();
+					VertexHandle hd = recoverV, hd1 = recoverV;
+
+					// Find which points we want to form a face
+					for (VVIter vv_it = vv_iter(v_it); vv_it.is_valid(); ++vv_it) {
+						double l = (point(vv_it) - log->remainPoint->neighborPos[i]).length();
+						if (l < minL) {
+							minL = l;
+							hd = vv_it.handle();
+						}
+					}
+					face.push_back(hd);
+
+					minL = (point(recoverV) - log->remainPoint->neighborPos[(i + 1) % n]).length();
+					for (VVIter vv_it = vv_iter(v_it); vv_it.is_valid(); ++vv_it) {
+						double l = (point(vv_it) - log->remainPoint->neighborPos[(i + 1) % n]).length();
+						if (l < minL) {
+							minL = l;
+							hd1 = vv_it.handle();
+						}
+					}
+					face.push_back(hd1);
+
+					if (face.size() != 3) {
+						cout << "ERROR SIZE" << endl;
+						continue;
+					}
+					else {
+						// Save the result to a temporary vector
+						allFaces.push_back(face);
+					}
+				}
+
+				break;
+
+			}
+		}
+
+		// Delete the original remain vertex before we add the face back,
+		// or we will get some errors
+		delete_vertex(v_it);
+		for (auto face: allFaces) {
+			add_face(face);
+		}
+	}
+
+	
+	garbage_collection();
+	cout << "FINISH" << endl;
+}

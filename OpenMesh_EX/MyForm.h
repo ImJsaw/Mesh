@@ -269,6 +269,8 @@ namespace OpenMesh_EX {
 	private: System::Windows::Forms::TableLayoutPanel^  tableLayoutPanel1;
 	private: HKOGLPanel::HKOGLPanelControl^  hkoglPanelControl1;
 	private: System::Windows::Forms::ToolStripMenuItem^  errorQuadricToolStripMenuItem;
+	private: System::Windows::Forms::ToolStripMenuItem^  recoverToolStripMenuItem;
+	private: System::Windows::Forms::ToolStripMenuItem^  decimateToolStripMenuItem;
 	protected:
 
 	private:
@@ -290,10 +292,12 @@ namespace OpenMesh_EX {
 			this->loadModelToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->saveModelToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->errorQuadricToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->recoverToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->openModelDialog = (gcnew System::Windows::Forms::OpenFileDialog());
 			this->saveModelDialog = (gcnew System::Windows::Forms::SaveFileDialog());
 			this->hkoglPanelControl1 = (gcnew HKOGLPanel::HKOGLPanelControl());
 			this->tableLayoutPanel1 = (gcnew System::Windows::Forms::TableLayoutPanel());
+			this->decimateToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->menuStrip1->SuspendLayout();
 			this->tableLayoutPanel1->SuspendLayout();
 			this->SuspendLayout();
@@ -301,9 +305,9 @@ namespace OpenMesh_EX {
 			// menuStrip1
 			// 
 			this->menuStrip1->ImageScalingSize = System::Drawing::Size(20, 20);
-			this->menuStrip1->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(2) {
+			this->menuStrip1->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(4) {
 				this->fileToolStripMenuItem,
-					this->errorQuadricToolStripMenuItem
+					this->errorQuadricToolStripMenuItem, this->recoverToolStripMenuItem, this->decimateToolStripMenuItem
 			});
 			this->menuStrip1->Location = System::Drawing::Point(0, 0);
 			this->menuStrip1->Name = L"menuStrip1";
@@ -342,6 +346,13 @@ namespace OpenMesh_EX {
 			this->errorQuadricToolStripMenuItem->Size = System::Drawing::Size(94, 20);
 			this->errorQuadricToolStripMenuItem->Text = L"Error Quadric";
 			this->errorQuadricToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::errorQuadricToolStripMenuItem_Click);
+			// 
+			// recoverToolStripMenuItem
+			// 
+			this->recoverToolStripMenuItem->Name = L"recoverToolStripMenuItem";
+			this->recoverToolStripMenuItem->Size = System::Drawing::Size(65, 20);
+			this->recoverToolStripMenuItem->Text = L"Recover";
+			this->recoverToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::recoverToolStripMenuItem_Click);
 			// 
 			// openModelDialog
 			// 
@@ -391,6 +402,13 @@ namespace OpenMesh_EX {
 			this->tableLayoutPanel1->Size = System::Drawing::Size(1050, 500);
 			this->tableLayoutPanel1->TabIndex = 3;
 			this->tableLayoutPanel1->Paint += gcnew System::Windows::Forms::PaintEventHandler(this, &MyForm::tableLayoutPanel1_Paint);
+			// 
+			// decimateToolStripMenuItem
+			// 
+			this->decimateToolStripMenuItem->Name = L"decimateToolStripMenuItem";
+			this->decimateToolStripMenuItem->Size = System::Drawing::Size(73, 20);
+			this->decimateToolStripMenuItem->Text = L"Decimate";
+			this->decimateToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::decimateToolStripMenuItem_Click);
 			// 
 			// MyForm
 			// 
@@ -781,6 +799,7 @@ namespace OpenMesh_EX {
 		std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
 		std::cout << "face" << face[0] << std::endl;
 		objptr++;
+		mesh->Initialize();
 		hkoglPanelControl1->Invalidate();
 
 		//test
@@ -824,6 +843,41 @@ namespace OpenMesh_EX {
 	private: System::Void errorQuadricToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (mesh != NULL) {
 			mesh->simplify(0.75);
+
+			for (int i = 0; i < OBJ_NUM; i++) {
+				vertices[i].clear();
+				face[i] = 0;
+				meshUV[i].clear();
+			}
+			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
+			std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
+			std::cout << "face" << face[0] << std::endl;
+
+			hkoglPanelControl1->Invalidate();
+		}
+	}
+	private: System::Void recoverToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
+		if (mesh != NULL) {
+			mesh->Recover(2);
+			mesh->garbage_collection();
+
+			for (int i = 0; i < OBJ_NUM; i++) {
+				vertices[i].clear();
+				face[i] = 0;
+				meshUV[i].clear();
+			}
+			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
+			std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
+			std::cout << "face" << face[0] << std::endl;
+
+			hkoglPanelControl1->Invalidate();
+		}
+	}
+
+	private: System::Void decimateToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
+		if (mesh != NULL) {
+			mesh->Decimate(2);
+			mesh->garbage_collection();
 
 			for (int i = 0; i < OBJ_NUM; i++) {
 				vertices[i].clear();

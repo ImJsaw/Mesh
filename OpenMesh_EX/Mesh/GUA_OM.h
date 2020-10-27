@@ -20,7 +20,11 @@ using namespace std;
 
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
+#include <Eigen/LU>
+#include <utility>
 #include <queue>
+#include <unordered_map>
+#include <deque>
 #include <../OpenMesh_EX/Mesh/CustomUtils.h>
 using namespace Eigen;
 
@@ -268,8 +272,90 @@ public:
 	void Render_SolidWireframe();
 	void Render_Wireframe();
 	void Render_Point();
+	void Decimate(int k);
+	void Recover(int k);
+	void Initialize() {
+		_deque = LogDeque();
+	}
+	bool equal(Point a, Point b) {
+		if ((a - b).length() < 1e-6) {
+			return true;
+		}
+		return false;
+	}
 
 private:
+	struct RollbackInfo {
+	public:
+		Point p;
+		vector<Point> neighborPos;  
+
+		RollbackInfo() {}
+
+		RollbackInfo(int idx, Tri_Mesh* mesh) {
+			p = mesh->point(mesh->vertex_handle(idx));
+			neighborPos = vector<Point>();
+			
+			VertexVertexCCWIter vv_it;
+			for (vv_it = mesh->vv_ccwbegin(mesh->vertex_handle(idx)); vv_it != mesh->vv_ccwend(mesh->vertex_handle(idx)); ++vv_it) {
+				neighborPos.push_back(mesh->point(*vv_it));
+			}
+		}
+
+	};
+
+	struct DecimationLog {
+	public:
+		RollbackInfo* collapsePoint;
+		RollbackInfo* remainPoint;
+		Point remainPointNewPosition;
+
+		DecimationLog(RollbackInfo* info1, RollbackInfo* info2, Point p) {
+			collapsePoint = info1;
+			remainPoint = info2;
+			remainPointNewPosition = p;
+		}
+	};
+
+	struct LogDeque {
+	private:
+		deque<DecimationLog*> storage;
+		deque<DecimationLog*> decimated;
+
+	public:
+		LogDeque() {
+			storage = deque<DecimationLog*>();
+			decimated = deque<DecimationLog*>();
+		}
+	
+		void pushNewLog(DecimationLog* log) {
+			storage.push_front(log);
+		}
+
+		void printTop() {
+			DecimationLog* log = decimated.front();
+		}
+
+		DecimationLog* toDecimate() {
+			if (storage.size() == 0) return nullptr;
+			DecimationLog* log = storage.back();
+			storage.pop_back();
+			decimated.push_front(log);
+			cout << storage.size()<< " " <<decimated.size() << endl;
+			return log;
+		}
+
+		DecimationLog* toRecover() {
+			if (decimated.size() == 0) return nullptr;
+			DecimationLog* log = decimated.front();
+			decimated.pop_front();
+			storage.push_back(log);
+			cout << storage.size() << " " << decimated.size() << endl;
+			return log;
+		}
+	};
+
+	LogDeque _deque;
 };
 
 ///*======================================================================*/
