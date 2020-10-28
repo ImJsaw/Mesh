@@ -1007,6 +1007,22 @@ void Tri_Mesh::loadToBufferPatch(std::vector<double> & out_vertices, int & face,
 		verticesSeqIndex = 0;
 	}
 }
+struct CompareCost {
+	Tri_Mesh* mesh;
+	OpenMesh::EPropHandleT<double>* cost;
+
+	CompareCost(Tri_Mesh* _mesh, OpenMesh::EPropHandleT<double>* _cost) {
+		mesh = _mesh;
+		cost = _cost;
+	}
+
+	bool operator()(int p1, int p2)
+	{
+		auto edgeHandle1 = mesh->edge_handle(p1);
+		auto edgeHandle2 = mesh->edge_handle(p2);
+		return mesh->property(*cost, edgeHandle1) > mesh->property(*cost, edgeHandle1);
+	}
+};
 
 Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	Tri_Mesh* simplified = this;
@@ -1017,12 +1033,24 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	simplified->add_property(QMat);
 	simplified->add_property(newPoint);
 
+
+	VIter v_it;
+	EIter e_it;
+	int vertexCount;
+	// calculate the Q matrix for all vertices
+	for (vertexCount = 0, v_it = simplified->vertices_begin(); v_it != simplified->vertices_end(); ++v_it, vertexCount++) {
+		Matrix4d q = calculateQ(v_it.handle());
+		simplified->property(QMat, *v_it) = q;
+	}
+
 	auto update_edge = [&](EdgeHandle& eh) {
 		VertexHandle to = to_vertex_handle(halfedge_handle(eh, 0));
 		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 
 		Matrix4d newQ = simplified->property(QMat, to) + simplified->property(QMat, from);
-		// mat4x4 newQ = calculateQ(to) + calculateQ(from);
+		//cout << "newQ: " << newQ << endl;
+		//cout << "oldQ: " << calculateQ(to) + calculateQ(from) << endl;;
+		//Matrix4d newQ = calculateQ(to) + calculateQ(from);
 		Matrix4d m = Matrix4d(newQ);
 
 		m(3, 0) = 0.0f;
@@ -1030,51 +1058,30 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		m(3, 2) = 0.0f;
 		m(3, 3) = 1.0f;
 
-		VectorXd x = m.fullPivLu().solve(Vector4d(0, 0, 0, 1));
-
+		//VectorXd x = m.fullPivLu().solve(Vector4d(0, 0, 0, 1));
+		Vector4d x = m.inverse() * (Vector4d(0, 0, 0, 1));
 		Vector4d newV;
-		//if (m.determinant() == 0.0f) {
+		if (m.determinant() == 0.0f) {
 			Point temp = (point(to) + point(from)) / 2;
 			newV = Vector4d(temp[0], temp[1], temp[2], 1);
-		//}
-		//else {
-		//	newV = x;
-		//}
+		}
+		else {
+			newV = x;
+		}
 		
 		Point newP = Point(newV(0), newV(1), newV(2));
-		//cout << newP << "\n" << x << endl;
+		//cout << "point(to): " << point(to) << endl;
+		//cout << "point(from): " << point(from) << endl;
+		if (abs(newP[0]) > 0.5 || abs(newP[1]) > 0.5 || abs(newP[2]) > 0.5)
+		{
+			cout << "newP: " << newP << endl;
+		}
+			
 
 		auto cur_cost = (newV.transpose() * newQ * newV)(0, 0);
 		// cout << cur_cost << endl;
 		simplified->property(cost, eh) = cur_cost;
 		simplified->property(newPoint, eh) = newP;
-	};
-
-	VIter v_it;
-	EIter e_it;
-	int vertexCount;
-
-	// calculate the Q matrix for all vertices
-	for (vertexCount = 0, v_it = simplified->vertices_begin(); v_it != simplified->vertices_end(); ++v_it, vertexCount++) {
-		Matrix4d q = calculateQ(v_it.handle());
-		simplified->property(QMat, *v_it) = q;
-	}
-
-	struct CompareCost {
-		Tri_Mesh* mesh;
-		OpenMesh::EPropHandleT<double>* cost;
-
-		CompareCost(Tri_Mesh* _mesh, OpenMesh::EPropHandleT<double>* _cost) {
-			mesh = _mesh;
-			cost = _cost;
-		}
-
-		bool operator()(int p1, int p2)
-		{
-			auto edgeHandle1 = mesh->edge_handle(p1);
-			auto edgeHandle2 = mesh->edge_handle(p2);
-			return mesh->property(*cost, edgeHandle1) > mesh->property(*cost, edgeHandle1);
-		}
 	};
 
 	CompareCost compare = CompareCost(simplified, &cost);
@@ -1107,8 +1114,8 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		}
 
 		if (is_collapse_ok(halfedge_handle(eh, 0))) {
-			cout << eh.idx() << " is going to be removed" << endl;
-			cout << simplified->property(cost, eh) << endl;
+			//cout << eh.idx() << " is going to be removed" << endl;
+			//cout << simplified->property(cost, eh) << endl;
 
 			RollbackInfo* info1 = new RollbackInfo(from.idx(), this);
 			RollbackInfo* info2 = new RollbackInfo(remain.idx(), this);
@@ -1136,7 +1143,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 
 			// new point position
 			point(remain) = simplified->property(newPoint, eh);
-			cout << "FINAL POINT: " << point(remain)<< " score: "<< simplified->property(cost, eh) << endl;
+			//cout << "FINAL POINT: " << point(remain)<< " score: "<< simplified->property(cost, eh) << endl;
 			from.invalidate();
 
 			DecimationLog* log = new DecimationLog(info1, info2, point(remain));
@@ -1166,58 +1173,47 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 
 Matrix4d Tri_Mesh::calculateQ(VertexHandle vhandle) {
 	VVIter vv_it;
-	Point p(0, 0, 0);
-
-/*
-	for (vv_it = vv_iter(vhandle); vv_it.is_valid(); ++vv_it) {
-		p += normal(*vv_it);
-		cout << normal(*vv_it) << endl;
-	}
-
-	p.normalize();
-
-	
-	cout << "vertex normal: " << p << endl;
-*/
-	p = Point(0, 0, 0);
-	for (VFIter vf_it = vf_iter(vhandle); vf_it.is_valid(); ++vf_it) {
-	p += normal(vf_it);
-	cout << normal(*vf_it) << endl;
-	}
-
-	p.normalize();
-	cout << "face normal: " << p << endl;
-	
-	Point v = point(vhandle);
-	
-	double a = p[0];
-	double b = p[1];
-	double c = p[2];
-	double d = -a * v[0] - b * v[1] - c * v[2];
-
 	Matrix4d q = Matrix4d();
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			q(i, j) = 0.0;
+		}
+	}
+	Point v = point(vhandle);
+	for (VFIter vf_it = vf_iter(vhandle); vf_it.is_valid(); ++vf_it) {
+		Point p = normal(vf_it);
+		
+		double a = p[0];
+		double b = p[1];
+		double c = p[2];
+		double d = -a * v[0] - b * v[1] - c * v[2];
+		//cout << a << ", " << b << ", " << c << ", " << d << endl;
+		q(0, 0) += a * a;
+		q(0, 1) += a * b;
+		q(0, 2) += a * c;
+		q(0, 3) += a * d;
 
+		q(1, 0) += b * a;
+		q(1, 1) += b * b;
+		q(1, 2) += b * c;
+		q(1, 3) += b * d;
 
-	q(0, 0) = a * a;
-	q(0, 1) = a * b;
-	q(0, 2) = a * c;
-	q(0, 3) = a * d;
+		q(2, 0) += c * a;
+		q(2, 1) += c * b;
+		q(2, 2) += c * c;
+		q(2, 3) += c * d;
 
-	q(1, 0) = a * b;
-	q(1, 1) = b * b;
-	q(1, 2) = b * c;
-	q(1, 3) = b * d;
-
-	q(2, 0) = a * c;
-	q(2, 1) = c * b;
-	q(2, 2) = c * c;
-	q(2, 3) = c * d;
-
-	q(3, 0) = a * d;
-	q(3, 1) = d * b;
-	q(3, 2) = d * c;
-	q(3, 3) = d * d;
-
+		q(3, 0) += d * a;
+		q(3, 1) += d * b;
+		q(3, 2) += d * c;
+		q(3, 3) += d * d;
+	}
+	
+	//p.normalize();
+	//cout << "face normal: " << p << endl;
+	//cout << q << endl << endl;
 	return q;
 }
 
@@ -1259,7 +1255,7 @@ void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
 	VIHIter vv_it;
 	//find one ring
 	for (vv_it = vih_iter(vhandle); vv_it; ++vv_it) {
-		cout << "collect." << endl;
+		//cout << "collect." << endl;
 		edges.push_back(vv_it.handle());
 	}
 	//collapse one ring
@@ -1267,7 +1263,7 @@ void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
 		for (size_t i = 0; i <= edges.size() - 1; i++) {
 			if (i >= edges.size() || i < 0) { cout << "out of bound" << endl; break; }
 			//if (!edges[i].is_valid) { cout << "unvalid edge" << endl; break; }
-			cout << i << "collapse." << endl;
+			//cout << i << "collapse." << endl;
 			collapse(edges[i]);
 		}
 	}
@@ -1375,7 +1371,7 @@ bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector
 		}
 		TriLine line2 = edgeBuffer[index];
 		double crossValue = TriLine::cross(line1, line2);
-		cout << "crossValue: " << crossValue << endl;
+		//cout << "crossValue: " << crossValue << endl;
 		if (crossValue < 0)
 			return false;
 	}
@@ -1408,6 +1404,8 @@ void Tri_Mesh::normalizeModel()
 	double scalar = std::max(maxX - minX, maxY - minY);
 	scalar = std::max(scalar, maxZ - minZ);
 	double center[3] = { (maxX + minX) / 2, (maxY + minY) / 2, (maxZ + minZ) / 2 };
+
+	
 	for (VertexIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it)
 	{
 		double posX = *(point(v_it.handle()).data());
@@ -1415,6 +1413,7 @@ void Tri_Mesh::normalizeModel()
 		double posZ = *(point(v_it.handle()).data() + 2);
 		Point newPoint((posX - center[0]) / scalar, (posY - center[1]) / scalar, (posZ - center[2]) / scalar);
 		set_point(*v_it, newPoint);
+		//cout << newPoint << endl;
 		//cout << "Vertex: " << newPoint << endl;
 	}
 }
@@ -1446,14 +1445,14 @@ void Tri_Mesh::Decimate(int k) {
 					// Determine the halfedge direction
 					if (equal(point(v1), p1) && equal(point(v2), p2)) {
 						found = true;
-						cout << "collapse" << endl;
+						//cout << "collapse" << endl;
 						collapse(halfedge_handle(ve_it, 0));
 						point(v2) = log->remainPointNewPosition;
 						break;
 					}
 					else if ((equal(point(v1), p2) && equal(point(v2), p1))) {
 						found = true;
-						cout << "collapse" << endl;
+						//cout << "collapse" << endl;
 						collapse(halfedge_handle(ve_it, 1));
 						point(v1) = log->remainPointNewPosition;
 						break;
