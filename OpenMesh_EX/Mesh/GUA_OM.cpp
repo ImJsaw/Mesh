@@ -1008,23 +1008,6 @@ void Tri_Mesh::loadToBufferPatch(std::vector<double> & out_vertices, int & face,
 	}
 }
 
-struct CompareCost {
-	Tri_Mesh* mesh;
-	OpenMesh::EPropHandleT<double>* cost;
-
-	CompareCost(Tri_Mesh* _mesh, OpenMesh::EPropHandleT<double>* _cost) {
-		mesh = _mesh;
-		cost = _cost;
-	}
-
-	bool operator()(const int p1, const int p2) const
-	{
-		auto edgeHandle1 = mesh->edge_handle(p1);
-		auto edgeHandle2 = mesh->edge_handle(p2);
-		return mesh->property(*cost, edgeHandle1) < mesh->property(*cost, edgeHandle2);
-	}
-};
-
 void Tri_Mesh::Update_Edge(EdgeHandle eh) {
 	VertexHandle to = to_vertex_handle(halfedge_handle(eh, 0));
 	VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
@@ -1053,7 +1036,6 @@ void Tri_Mesh::Update_Edge(EdgeHandle eh) {
 	this->property(cost, eh) = cur_cost;
 	this->property(newPoint, eh) = newP;
 }
-
 
 Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	Tri_Mesh* simplified = this;
