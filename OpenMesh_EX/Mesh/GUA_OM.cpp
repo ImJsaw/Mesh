@@ -1060,6 +1060,11 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	// repeat until the vertex number is lower than the target number
 	int targetVertexCount = vertexCount * rate;
 	while (vertexCount > targetVertexCount) {
+		if (simplified->_deque.canDecimate()) {
+			simplified->Decimate(1);
+			continue;
+		}
+
 		if (pq.size() == 0) break;
 		auto top = pq.begin();
 		EdgeHandle eh = simplified->edge_handle(*top);

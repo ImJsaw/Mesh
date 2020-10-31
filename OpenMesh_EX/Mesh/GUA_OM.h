@@ -366,6 +366,14 @@ private:
 			DecimationLog* log = decimated.front();
 		}
 
+		bool canDecimate() {
+			return storage.size() > 0;
+		}
+
+		bool canRecover() {
+			return decimated.size() > 0;
+		}
+
 		DecimationLog* toDecimate() {
 			if (storage.size() == 0) return nullptr;
 			DecimationLog* log = storage.back();
