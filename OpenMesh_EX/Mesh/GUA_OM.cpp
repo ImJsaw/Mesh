@@ -23,6 +23,7 @@ public:
 		this->y = y;
 		this->z = z;
 	}
+
 	~TriVertex()
 	{
 	}
@@ -1054,7 +1055,14 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			pq.insert(e_it.handle().idx());
 		}
 	}
+	//test
+	/*auto top = pq.begin();
+	EdgeHandle eh = simplified->edge_handle(*top);
 
+	VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
+	VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));*/
+	
+	
 	// collapse the edge with smallest cost
 	// if the connected vertices form a concave polygon, ignore this edge
 	// repeat until the vertex number is lower than the target number
@@ -1066,12 +1074,14 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		}
 
 		if (pq.size() == 0) break;
+		
 		auto top = pq.begin();
 		EdgeHandle eh = simplified->edge_handle(*top);
 
 		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 		VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));
-		
+		Point np = simplified->property(newPoint, eh);
+
 		// pop the edge with the smallest cost
 		pq.erase(*top);
 
@@ -1079,7 +1089,8 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			continue;
 		}
 
-		if (is_collapse_ok(halfedge_handle(eh, 0))) {
+		if (is_collapse_ok(halfedge_handle(eh, 0)) && DetermineConcaveByTwoPoints(&from, &remain, &np)) {
+			Point np = simplified->property(newPoint, eh);
 			RollbackInfo* info1 = new RollbackInfo(from.idx(), this);
 			RollbackInfo* info2 = new RollbackInfo(remain.idx(), this);
 			
@@ -1221,109 +1232,72 @@ void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
 }
 
 
-bool Tri_Mesh::DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector<double> & p2, std::vector<double> & vertices)
+bool Tri_Mesh::DetermineConcaveByTwoPoints(VertexHandle *p1, VertexHandle *p2, Point* np)
 {
-	std::vector<int> faceBuffer;
-	//std::vector<TriVertex> vertexBuffer;
-	std::vector<TriLine> edgeBuffer;
-	TriVertex center1 = TriVertex(p1[0], p1[1], p1[2]);
-	TriVertex center2 = TriVertex(p2[0], p2[1], p2[2]);
-	for (int faceID = 0; faceID < vertices.size() / 9; faceID++)
+	Point v1 = point((*p1));
+	Point v2 = point((*p2));
+	for (VertexFaceIter vf_it = vf_begin(*p1); vf_it != vf_end(*p1); ++vf_it)
 	{
-		for (int i = 0; i < 3; i++)
+		vector<Point> oldVector;
+		vector<Point> newVector;
+		for (FaceVertexIter fv_it = fv_iter(vf_it); fv_it; fv_it++)
 		{
-			// 每個面有三個vertexes
-			double vertexX = vertices[faceID * 9 + 3 * i];
-			double vertexY = vertices[faceID * 9 + 3 * i + 1];
-			double vertexZ = vertices[faceID * 9 + 3 * i + 2];
-			if (p1[0] == vertexX && p1[1] == vertexY && p1[2] == vertexZ)
+			Point p = point(fv_it);
+			if (p == v1)
 			{
-				//比對是否屬於該平面
-				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end())
-				{
-					faceBuffer.push_back(faceID);
-					//加入該平面其餘2點
-					TriVertex temp[2];
-					for (int k = 1; k < 3; k++)
-					{
-						int offset = (i + k) % 3;
-						double X = vertices[faceID * 9 + 3 * offset];
-						double Y = vertices[faceID * 9 + 3 * offset + 1];
-						double Z = vertices[faceID * 9 + 3 * offset + 2];
-						temp[k - 1] = TriVertex(X, Y, Z);
-					}
-					if (!(temp[0] == center2 || temp[1] == center2))
-					{
-						edgeBuffer.push_back(TriLine(temp[0], temp[1]));
-					}
-				}
+				continue;
 			}
-			if (p2[0] == vertexX && p2[1] == vertexY && p2[2] == vertexZ)
+			else
 			{
-				if (std::find(faceBuffer.begin(), faceBuffer.end(), faceID) == faceBuffer.end())
-				{
-					faceBuffer.push_back(faceID);
-					//加入該平面其餘2點
-					TriVertex temp[2];
-					for (int k = 1; k < 3; k++)
-					{
-						int offset = (i + k) % 3;
-						double X = vertices[faceID * 9 + 3 * offset];
-						double Y = vertices[faceID * 9 + 3 * offset + 1];
-						double Z = vertices[faceID * 9 + 3 * offset + 2];
-						temp[k - 1] = TriVertex(X, Y, Z);
-					}
-					if (!(temp[0] == center1 || temp[1] == center1))
-					{
-						edgeBuffer.push_back(TriLine(temp[0], temp[1]));
-					}
-				}
+				oldVector.push_back( (v1 - p).normalize() );
+				newVector.push_back( ((*np) - p).normalize() );
 			}
 		}
-	}
-	//face buffer
-	/*cout << "faceBuffer: ";
-	for (int i = 0; i < faceBuffer.size(); i++)
-	{
-	cout << faceBuffer[i] << ", ";
-	}
-	cout << endl;*/
-
-	//edge buffer
-	//cout << edgeBuffer.size() << endl;
-	for (int i = 0; i < edgeBuffer.size(); i++)
-	{
-		//cout << edgeBuffer[i] << endl;
-		glPointSize(8.0);
-		glColor3f(1.0, 0.0, 0.0);
-		glBegin(GL_POINTS);
-		for (OMT::VIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it) {
-			GLdouble po[3] = { edgeBuffer[i].p1.x, edgeBuffer[i].p1.y, edgeBuffer[i].p1.z };
-			glVertex3dv(po);
-		}
-		glEnd();
-	}
-	int rounds = 0;
-	int index = 0;
-	while (rounds < edgeBuffer.size())
-	{
-		rounds++;
-		TriLine line1 = edgeBuffer[index];
-		//find next line 
-		for (int i = 0; i < edgeBuffer.size(); i++)
+		double oldCross[3] = {  oldVector[0][1] * oldVector[1][2] - oldVector[0][2] * oldVector[1][1],
+								oldVector[0][0] * oldVector[1][2] - oldVector[0][2] * oldVector[1][0],
+								oldVector[0][0] * oldVector[1][1] - oldVector[0][1] * oldVector[1][0] };
+		double newCross[3] = {  newVector[0][1] * newVector[1][2] - newVector[0][2] * newVector[1][1],
+								newVector[0][0] * newVector[1][2] - newVector[0][2] * newVector[1][0],
+								newVector[0][0] * newVector[1][1] - newVector[0][1] * newVector[1][0] };
+		double dot = oldCross[0] * newCross[0] + oldCross[1] * newCross[1] + oldCross[2] * newCross[2];
+		if (dot < 0)
 		{
-			if (edgeBuffer[i].p1 == line1.p2)
-			{
-				index = i;
-				break;
-			}
-		}
-		TriLine line2 = edgeBuffer[index];
-		double crossValue = TriLine::cross(line1, line2);
-		//cout << "crossValue: " << crossValue << endl;
-		if (crossValue < 0)
 			return false;
+		}
 	}
+	
+
+	for (VertexFaceIter vf_it = vf_begin(*p2); vf_it != vf_end(*p2); ++vf_it)
+	{
+		vector<Point> oldVector;
+		vector<Point> newVector;
+		
+		for (FaceVertexIter fv_it = fv_iter(vf_it); fv_it; fv_it++)
+		{
+			Point p = point(fv_it);
+			if (p == v2)
+			{
+				continue;
+			}
+			else
+			{
+				oldVector.push_back((p - v2).normalize());
+				newVector.push_back((p - (*np)).normalize());
+			}
+		}
+		double oldCross[3] = { oldVector[0][1] * oldVector[1][2] - oldVector[0][2] * oldVector[1][1],
+								oldVector[0][0] * oldVector[1][2] - oldVector[0][2] * oldVector[1][0],
+								oldVector[0][0] * oldVector[1][1] - oldVector[0][1] * oldVector[1][0] };
+		double newCross[3] = { newVector[0][1] * newVector[1][2] - newVector[0][2] * newVector[1][1],
+								newVector[0][0] * newVector[1][2] - newVector[0][2] * newVector[1][0],
+								newVector[0][0] * newVector[1][1] - newVector[0][1] * newVector[1][0] };
+		double dot = oldCross[0] * newCross[0] + oldCross[1] * newCross[1] + oldCross[2] * newCross[2];
+		if (dot < 0)
+		{
+			return false;
+		}
+	}
+	
 	return true;
 }
 

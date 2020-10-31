@@ -258,7 +258,7 @@ public:
 	Matrix4d calculateQ(VertexHandle vhandle);
 
 	void oneRingCollapse(VHandle vhandle);
-	bool DetermineConcaveByTwoPoints(std::vector<double> & p1, std::vector<double> & p2, std::vector<double> & vertices);
+	bool DetermineConcaveByTwoPoints(VertexHandle *p1, VertexHandle *p2, Point *np);
 	void normalizeModel();
 
 	Tri_Mesh simplify(float rate, float threshold = 0);
