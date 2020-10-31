@@ -1016,11 +1016,11 @@ struct CompareCost {
 		cost = _cost;
 	}
 
-	bool operator()(int p1, int p2)
+	bool operator()(const int p1, const int p2) const
 	{
 		auto edgeHandle1 = mesh->edge_handle(p1);
 		auto edgeHandle2 = mesh->edge_handle(p2);
-		return mesh->property(*cost, edgeHandle1) > mesh->property(*cost, edgeHandle1);
+		return mesh->property(*cost, edgeHandle1) < mesh->property(*cost, edgeHandle2);
 	}
 };
 
@@ -1034,6 +1034,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	simplified->add_property(newPoint);
 
 
+	auto t0 = high_resolution_clock::now();
 	VIter v_it;
 	EIter e_it;
 	int vertexCount;
@@ -1042,6 +1043,8 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		Matrix4d q = calculateQ(v_it.handle());
 		simplified->property(QMat, *v_it) = q;
 	}
+	cout << "done preprocessing in " << duration<double>(high_resolution_clock::now() - t0).count() << " s" << endl;
+	t0 = high_resolution_clock::now();
 
 	auto update_edge = [&](EdgeHandle& eh) {
 		VertexHandle to = to_vertex_handle(halfedge_handle(eh, 0));
@@ -1069,73 +1072,60 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			newV = x;
 		}
 		
-		Point newP = Point(newV(0), newV(1), newV(2));
-		//cout << "point(to): " << point(to) << endl;
-		//cout << "point(from): " << point(from) << endl;
-		if (abs(newP[0]) > 0.5 || abs(newP[1]) > 0.5 || abs(newP[2]) > 0.5)
-		{
-			cout << "newP: " << newP << endl;
-		}
-			
+		Point newP = Point(newV(0), newV(1), newV(2));	
 
 		auto cur_cost = (newV.transpose() * newQ * newV)(0, 0);
-		// cout << cur_cost << endl;
 		simplified->property(cost, eh) = cur_cost;
 		simplified->property(newPoint, eh) = newP;
 	};
 
 	CompareCost compare = CompareCost(simplified, &cost);
 
-	_priority_queue<int, vector<int>, CompareCost> pq(compare);
+	std::set<int, CompareCost> pq(compare);
+
 
 	if (threshold == 0) {
 		for (e_it = simplified->edges_begin(); e_it != simplified->edges_end(); ++e_it) {
 			update_edge(e_it.handle());
-			pq.push(e_it.handle().idx());
+			pq.insert(e_it.handle().idx());
 		}
 	}
+	cout << "size: " << pq.size() << endl;
+
+	cout << "done pushing all edges in " << duration<double>(high_resolution_clock::now() - t0).count() << " s" << endl;
+	t0 = high_resolution_clock::now();
 
 	// collapse the edge with smallest cost
 	// if the connected vertices form a concave polygon, ignore this edge
 	// repeat until the vertex number is lower than the target number
 	int targetVertexCount = vertexCount * rate;
 	while (vertexCount > targetVertexCount) {
-		if (pq.empty()) break;
-		int id = pq.top();
-		EdgeHandle eh = simplified->edge_handle(id);
+		if (pq.size() == 0) break;
+		auto top = pq.begin();
+		EdgeHandle eh = simplified->edge_handle(*top);
 
 		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 		VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));
 		
-		pq.pop();
+		pq.erase(*top);
 
 		if (!from.is_valid() || !remain.is_valid() || !eh.is_valid()) {
 			continue;
 		}
 
 		if (is_collapse_ok(halfedge_handle(eh, 0))) {
-			//cout << eh.idx() << " is going to be removed" << endl;
-			//cout << simplified->property(cost, eh) << endl;
-
 			RollbackInfo* info1 = new RollbackInfo(from.idx(), this);
 			RollbackInfo* info2 = new RollbackInfo(remain.idx(), this);
 			
 			// remove connected edges in pq
 			VertexEdgeIter ve_it = simplified->ve_iter(from);
 			for (; ve_it.is_valid(); ++ve_it) {
-				printf("target id: %d\n", ve_it.handle().idx());
-				if (!pq.remove(ve_it.handle().idx())) {
-				//	cout << "Error!" << endl;
-				}
-				//else cout << "success" << endl;
+				pq.erase(ve_it.handle().idx());
 			}
 
 			ve_it = simplified->ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
-				if (!pq.remove(ve_it.handle().idx())) {
-				//	cout << "Error!" << endl;
-				}
-				//else cout << "success" << endl;
+				pq.erase(ve_it.handle().idx());
 			}
 
 			// collapse
@@ -1153,9 +1143,11 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			ve_it = simplified->ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
 				update_edge(ve_it.handle());
-				pq.push(ve_it.handle().idx());
+				pq.insert(ve_it.handle().idx());
 			}
-
+			cout << "done an iteration in " << duration<double>(high_resolution_clock::now() - t0).count() << " s" << endl;
+			t0 = high_resolution_clock::now();
+			
 			vertexCount--;
 			_deque.toDecimate();
 		}
