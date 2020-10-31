@@ -1034,7 +1034,6 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 	simplified->add_property(newPoint);
 
 
-	auto t0 = high_resolution_clock::now();
 	VIter v_it;
 	EIter e_it;
 	int vertexCount;
@@ -1043,8 +1042,6 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		Matrix4d q = calculateQ(v_it.handle());
 		simplified->property(QMat, *v_it) = q;
 	}
-	cout << "done preprocessing in " << duration<double>(high_resolution_clock::now() - t0).count() << " s" << endl;
-	t0 = high_resolution_clock::now();
 
 	auto update_edge = [&](EdgeHandle& eh) {
 		VertexHandle to = to_vertex_handle(halfedge_handle(eh, 0));
@@ -1090,9 +1087,6 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			pq.insert(e_it.handle().idx());
 		}
 	}
-
-	cout << "done pushing all edges in " << duration<double>(high_resolution_clock::now() - t0).count() << " s" << endl;
-	t0 = high_resolution_clock::now();
 
 	// collapse the edge with smallest cost
 	// if the connected vertices form a concave polygon, ignore this edge
@@ -1144,8 +1138,6 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 				update_edge(ve_it.handle());
 				pq.insert(ve_it.handle().idx());
 			}
-			cout << "done an iteration in " << duration<double>(high_resolution_clock::now() - t0).count() << " s" << endl;
-			t0 = high_resolution_clock::now();
 			
 			vertexCount--;
 			_deque.toDecimate();
@@ -1180,7 +1172,7 @@ Matrix4d Tri_Mesh::calculateQ(VertexHandle vhandle) {
 		double b = p[1];
 		double c = p[2];
 		double d = -a * v[0] - b * v[1] - c * v[2];
-		//cout << a << ", " << b << ", " << c << ", " << d << endl;
+
 		q(0, 0) += a * a;
 		q(0, 1) += a * b;
 		q(0, 2) += a * c;
@@ -1202,9 +1194,6 @@ Matrix4d Tri_Mesh::calculateQ(VertexHandle vhandle) {
 		q(3, 3) += d * d;
 	}
 	
-	//p.normalize();
-	//cout << "face normal: " << p << endl;
-	//cout << q << endl << endl;
 	return q;
 }
 

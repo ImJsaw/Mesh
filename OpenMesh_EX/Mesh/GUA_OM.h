@@ -343,7 +343,7 @@ private:
 			DecimationLog* log = storage.back();
 			storage.pop_back();
 			decimated.push_front(log);
-			cout << storage.size()<< " " <<decimated.size() << endl;
+			// cout << storage.size()<< " " <<decimated.size() << endl;
 			return log;
 		}
 
@@ -352,7 +352,7 @@ private:
 			DecimationLog* log = decimated.front();
 			decimated.pop_front();
 			storage.push_back(log);
-			cout << storage.size() << " " << decimated.size() << endl;
+			// cout << storage.size() << " " << decimated.size() << endl;
 			return log;
 		}
 	};
