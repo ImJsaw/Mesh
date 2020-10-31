@@ -239,9 +239,17 @@ class Tri_Mesh:public OMT::Model
 public:
 	Tri_Mesh()
 	{
+		_deque = LogDeque();
 		request_vertex_texcoords2D();
-	
 	}
+
+	~Tri_Mesh()
+	{
+		this->remove_property(cost);
+		this->remove_property(QMat);
+		this->remove_property(newPoint);
+	}
+
 	void loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, int & face, std::vector<double> & uv);
 	void loadToBufferPatch(std::vector<double> & out_vertices, int & face, std::vector<int> selected, Tri_Mesh & patch);
 	void findNearestPoint(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex);
@@ -276,9 +284,8 @@ public:
 	void Render_Point();
 	void Decimate(int k);
 	void Recover(int k);
-	void Initialize() {
-		_deque = LogDeque();
-	}
+	void Initialize();
+	void Update_Edge(EdgeHandle eh);
 	bool equal(Point a, Point b) {
 		if ((a - b).length() < 1e-6) {
 			return true;
@@ -287,6 +294,10 @@ public:
 	}
 
 private:
+	OpenMesh::EPropHandleT<double> cost;
+	OpenMesh::VPropHandleT<Matrix4d> QMat;
+	OpenMesh::EPropHandleT<Point> newPoint;
+
 	struct RollbackInfo {
 	public:
 		Point p;

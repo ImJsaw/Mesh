@@ -1007,6 +1007,7 @@ void Tri_Mesh::loadToBufferPatch(std::vector<double> & out_vertices, int & face,
 		verticesSeqIndex = 0;
 	}
 }
+
 struct CompareCost {
 	Tri_Mesh* mesh;
 	OpenMesh::EPropHandleT<double>* cost;
@@ -1024,66 +1025,50 @@ struct CompareCost {
 	}
 };
 
-Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
-	Tri_Mesh* simplified = this;
-	OpenMesh::EPropHandleT<double> cost;
-	OpenMesh::VPropHandleT<Matrix4d> QMat;
-	OpenMesh::EPropHandleT<Point> newPoint;
-	simplified->add_property(cost);
-	simplified->add_property(QMat);
-	simplified->add_property(newPoint);
+void Tri_Mesh::Update_Edge(EdgeHandle eh) {
+	VertexHandle to = to_vertex_handle(halfedge_handle(eh, 0));
+	VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 
+	Matrix4d newQ = this->property(QMat, to) + this->property(QMat, from);
+	Matrix4d m = Matrix4d(newQ);
 
-	VIter v_it;
-	EIter e_it;
-	int vertexCount;
-	// calculate the Q matrix for all vertices
-	for (vertexCount = 0, v_it = simplified->vertices_begin(); v_it != simplified->vertices_end(); ++v_it, vertexCount++) {
-		Matrix4d q = calculateQ(v_it.handle());
-		simplified->property(QMat, *v_it) = q;
+	m(3, 0) = 0.0f;
+	m(3, 1) = 0.0f;
+	m(3, 2) = 0.0f;
+	m(3, 3) = 1.0f;
+
+	Vector4d x = m.inverse() * (Vector4d(0, 0, 0, 1));
+	Vector4d newV;
+	if (m.determinant() == 0.0f) {
+		Point temp = (point(to) + point(from)) / 2;
+		newV = Vector4d(temp[0], temp[1], temp[2], 1);
+	}
+	else {
+		newV = x;
 	}
 
-	auto update_edge = [&](EdgeHandle& eh) {
-		VertexHandle to = to_vertex_handle(halfedge_handle(eh, 0));
-		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
+	Point newP = Point(newV(0), newV(1), newV(2));
 
-		Matrix4d newQ = simplified->property(QMat, to) + simplified->property(QMat, from);
-		//cout << "newQ: " << newQ << endl;
-		//cout << "oldQ: " << calculateQ(to) + calculateQ(from) << endl;;
-		//Matrix4d newQ = calculateQ(to) + calculateQ(from);
-		Matrix4d m = Matrix4d(newQ);
+	auto cur_cost = (newV.transpose() * newQ * newV)(0, 0);
+	this->property(cost, eh) = cur_cost;
+	this->property(newPoint, eh) = newP;
+}
 
-		m(3, 0) = 0.0f;
-		m(3, 1) = 0.0f;
-		m(3, 2) = 0.0f;
-		m(3, 3) = 1.0f;
 
-		//VectorXd x = m.fullPivLu().solve(Vector4d(0, 0, 0, 1));
-		Vector4d x = m.inverse() * (Vector4d(0, 0, 0, 1));
-		Vector4d newV;
-		if (m.determinant() == 0.0f) {
-			Point temp = (point(to) + point(from)) / 2;
-			newV = Vector4d(temp[0], temp[1], temp[2], 1);
-		}
-		else {
-			newV = x;
-		}
-		
-		Point newP = Point(newV(0), newV(1), newV(2));	
-
-		auto cur_cost = (newV.transpose() * newQ * newV)(0, 0);
-		simplified->property(cost, eh) = cur_cost;
-		simplified->property(newPoint, eh) = newP;
-	};
-
+Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
+	Tri_Mesh* simplified = this;
+	simplified->Initialize();
+	
+	VIter v_it;
+	EIter e_it;
 	CompareCost compare = CompareCost(simplified, &cost);
+	int vertexCount = simplified->n_vertices();
 
 	std::set<int, CompareCost> pq(compare);
 
-
 	if (threshold == 0) {
 		for (e_it = simplified->edges_begin(); e_it != simplified->edges_end(); ++e_it) {
-			update_edge(e_it.handle());
+			Update_Edge(e_it.handle());
 			pq.insert(e_it.handle().idx());
 		}
 	}
@@ -1100,6 +1085,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 		VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));
 		
+		// pop the edge with the smallest cost
 		pq.erase(*top);
 
 		if (!from.is_valid() || !remain.is_valid() || !eh.is_valid()) {
@@ -1126,29 +1112,25 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 
 			// new point position
 			point(remain) = simplified->property(newPoint, eh);
-			//cout << "FINAL POINT: " << point(remain)<< " score: "<< simplified->property(cost, eh) << endl;
 			from.invalidate();
 
+			// add new log to the deque
 			DecimationLog* log = new DecimationLog(info1, info2, point(remain));
 			_deque.pushNewLog(log);
 
 			// update the cost of connected edges and push them back to the pq
 			ve_it = simplified->ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
-				update_edge(ve_it.handle());
+				Update_Edge(ve_it.handle());
 				pq.insert(ve_it.handle().idx());
 			}
 			
 			vertexCount--;
 			_deque.toDecimate();
 		}
-
 	}
 
 	cout << "FINISH" << endl;
-	simplified->remove_property(cost);
-	simplified->remove_property(QMat);
-	simplified->remove_property(newPoint);
 	simplified->garbage_collection();
 	return *simplified;
 }
@@ -1570,3 +1552,16 @@ void Tri_Mesh::Recover(int k) {
 	garbage_collection();
 	cout << "FINISH" << endl;
 }
+
+void Tri_Mesh::Initialize() {
+	this->add_property(cost);
+	this->add_property(QMat);
+	this->add_property(newPoint);
+
+	// calculate the Q matrix for all vertices
+	for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
+		Matrix4d q = calculateQ(v_it.handle());
+		this->property(QMat, *v_it) = q;
+	}
+}
+
