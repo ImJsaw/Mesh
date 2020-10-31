@@ -1090,7 +1090,6 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 			pq.insert(e_it.handle().idx());
 		}
 	}
-	cout << "size: " << pq.size() << endl;
 
 	cout << "done pushing all edges in " << duration<double>(high_resolution_clock::now() - t0).count() << " s" << endl;
 	t0 = high_resolution_clock::now();
