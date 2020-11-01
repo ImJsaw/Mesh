@@ -18,7 +18,9 @@ using namespace glm;
 #include <stdlib.h>
 #include <iostream>
 #include <algorithm>
+#include <chrono>
 using namespace std;
+using namespace chrono;
 
 #define FACE_SIZE 5000
 int OBJ_NUM = 13;
@@ -271,6 +273,7 @@ namespace OpenMesh_EX {
 	private: System::Windows::Forms::ToolStripMenuItem^  errorQuadricToolStripMenuItem;
 	private: System::Windows::Forms::ToolStripMenuItem^  recoverToolStripMenuItem;
 	private: System::Windows::Forms::ToolStripMenuItem^  decimateToolStripMenuItem;
+	private: System::Windows::Forms::TrackBar^  trackBar1;
 	protected:
 
 	private:
@@ -293,13 +296,15 @@ namespace OpenMesh_EX {
 			this->saveModelToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->errorQuadricToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->recoverToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->decimateToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->openModelDialog = (gcnew System::Windows::Forms::OpenFileDialog());
 			this->saveModelDialog = (gcnew System::Windows::Forms::SaveFileDialog());
 			this->hkoglPanelControl1 = (gcnew HKOGLPanel::HKOGLPanelControl());
 			this->tableLayoutPanel1 = (gcnew System::Windows::Forms::TableLayoutPanel());
-			this->decimateToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->trackBar1 = (gcnew System::Windows::Forms::TrackBar());
 			this->menuStrip1->SuspendLayout();
 			this->tableLayoutPanel1->SuspendLayout();
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->trackBar1))->BeginInit();
 			this->SuspendLayout();
 			// 
 			// menuStrip1
@@ -354,6 +359,13 @@ namespace OpenMesh_EX {
 			this->recoverToolStripMenuItem->Text = L"Recover";
 			this->recoverToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::recoverToolStripMenuItem_Click);
 			// 
+			// decimateToolStripMenuItem
+			// 
+			this->decimateToolStripMenuItem->Name = L"decimateToolStripMenuItem";
+			this->decimateToolStripMenuItem->Size = System::Drawing::Size(73, 20);
+			this->decimateToolStripMenuItem->Text = L"Decimate";
+			this->decimateToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::decimateToolStripMenuItem_Click);
+			// 
 			// openModelDialog
 			// 
 			this->openModelDialog->FileOk += gcnew System::ComponentModel::CancelEventHandler(this, &MyForm::openModelDialog_FileOk);
@@ -403,18 +415,21 @@ namespace OpenMesh_EX {
 			this->tableLayoutPanel1->TabIndex = 3;
 			this->tableLayoutPanel1->Paint += gcnew System::Windows::Forms::PaintEventHandler(this, &MyForm::tableLayoutPanel1_Paint);
 			// 
-			// decimateToolStripMenuItem
+			// trackBar1
 			// 
-			this->decimateToolStripMenuItem->Name = L"decimateToolStripMenuItem";
-			this->decimateToolStripMenuItem->Size = System::Drawing::Size(73, 20);
-			this->decimateToolStripMenuItem->Text = L"Decimate";
-			this->decimateToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::decimateToolStripMenuItem_Click);
+			this->trackBar1->Location = System::Drawing::Point(628, 0);
+			this->trackBar1->Name = L"trackBar1";
+			this->trackBar1->Size = System::Drawing::Size(312, 45);
+			this->trackBar1->TabIndex = 4;
+			this->trackBar1->MouseUp += gcnew System::Windows::Forms::MouseEventHandler(this, &MyForm::trackBar1_MouseUp);
+			this->trackBar1->MouseDown += gcnew System::Windows::Forms::MouseEventHandler(this, &MyForm::trackBar1_MouseDown);
 			// 
 			// MyForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 12);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->ClientSize = System::Drawing::Size(1051, 521);
+			this->Controls->Add(this->trackBar1);
 			this->Controls->Add(this->tableLayoutPanel1);
 			this->Controls->Add(this->menuStrip1);
 			this->MainMenuStrip = this->menuStrip1;
@@ -423,6 +438,7 @@ namespace OpenMesh_EX {
 			this->menuStrip1->ResumeLayout(false);
 			this->menuStrip1->PerformLayout();
 			this->tableLayoutPanel1->ResumeLayout(false);
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->trackBar1))->EndInit();
 			this->ResumeLayout(false);
 			this->PerformLayout();
 
@@ -671,6 +687,29 @@ namespace OpenMesh_EX {
 		}
 	}
 
+	int lastValue = 0;
+	private: System::Void trackBar1_MouseUp(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
+		cout << trackBar1->Maximum << " " << trackBar1->Minimum << endl;
+		cout << "cur: " << trackBar1->Value << endl;
+		if (trackBar1->Value != lastValue) {
+			int x = trackBar1->Value - lastValue;
+			cout << x << endl;
+			
+			if (x > 0) {
+				mesh->Recover(x);
+			}
+			else {
+				mesh->Decimate(abs(x));
+			}
+		}
+		lastValue = trackBar1->Value;
+		Reload();
+	}
+
+	private: System::Void trackBar1_MouseDown(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
+		lastValue = trackBar1->Value;
+	}
+
 	//mouseClick
 	private: System::Void hkoglPanelControl1_MouseDown(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
 		if (e->Button == System::Windows::Forms::MouseButtons::Left) {
@@ -699,7 +738,7 @@ namespace OpenMesh_EX {
 				std::cout << "meshUV.size() : " << meshUV[objptr].size() << "vertices.size()" << vertices[objptr].size() << endl;
 				std::cout << "face" << face[objptr] << std::endl;
 			}
-
+			lastValue = trackBar1->Value;
 
 			/*
 			//printf("mouse x = %d mouse y = %d\n", e->X, hkoglPanelControl1->Height - e->Y);
@@ -794,12 +833,15 @@ namespace OpenMesh_EX {
 
 		if (ReadFile(filename, mesh)) std::cout << filename << std::endl;
 		isLoad = true;
-		mesh->normalizeModel();
+		
+		mesh->Initialize();
+
 		mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
 		std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
 		std::cout << "face" << face[0] << std::endl;
 		objptr++;
-		mesh->Initialize();
+
+		trackBar1->Maximum = mesh->n_vertices();
 		hkoglPanelControl1->Invalidate();
 
 		//test
@@ -842,54 +884,46 @@ namespace OpenMesh_EX {
 
 	private: System::Void errorQuadricToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (mesh != NULL) {
+			auto t0 = high_resolution_clock::now();
 			mesh->simplify(0.75);
 
-			for (int i = 0; i < OBJ_NUM; i++) {
-				vertices[i].clear();
-				face[i] = 0;
-				meshUV[i].clear();
-			}
-			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
-			std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
-			std::cout << "face" << face[0] << std::endl;
+			trackBar1->Minimum = mesh->n_vertices();
+			trackBar1->Value = mesh->n_vertices();
+			lastValue = trackBar1->Value;
 
-			hkoglPanelControl1->Invalidate();
+			Reload();
+
+			cout << "done simplification in " << duration<double>(high_resolution_clock::now() - t0).count() << " s" << endl;
 		}
 	}
 	private: System::Void recoverToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (mesh != NULL) {
 			mesh->Recover(2);
-			mesh->garbage_collection();
 
-			for (int i = 0; i < OBJ_NUM; i++) {
-				vertices[i].clear();
-				face[i] = 0;
-				meshUV[i].clear();
-			}
-			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
-			std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
-			std::cout << "face" << face[0] << std::endl;
-
-			hkoglPanelControl1->Invalidate();
+			Reload();
 		}
 	}
 
 	private: System::Void decimateToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (mesh != NULL) {
-			mesh->Decimate(2);
-			mesh->garbage_collection();
+			mesh->Decimate(20);
+			trackBar1->Value = mesh->n_vertices();
 
-			for (int i = 0; i < OBJ_NUM; i++) {
-				vertices[i].clear();
-				face[i] = 0;
-				meshUV[i].clear();
-			}
-			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
-			std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
-			std::cout << "face" << face[0] << std::endl;
-
-			hkoglPanelControl1->Invalidate();
+			Reload();
 		}
+	}
+
+	private: void Reload() {
+		for (int i = 0; i < OBJ_NUM; i++) {
+			vertices[i].clear();
+			face[i] = 0;
+			meshUV[i].clear();
+		}
+		mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
+		std::cout << "meshUV.size() : " << meshUV[0].size() << "vertices.size()" << vertices[0].size() << endl;
+		std::cout << "face" << face[0] << std::endl;
+
+		hkoglPanelControl1->Invalidate();
 	}
 };
 }

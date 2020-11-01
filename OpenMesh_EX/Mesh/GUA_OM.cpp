@@ -1038,41 +1038,32 @@ void Tri_Mesh::Update_Edge(EdgeHandle eh) {
 	this->property(newPoint, eh) = newP;
 }
 
-Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
+void Tri_Mesh::simplify(float rate) {
 	Tri_Mesh* simplified = this;
-	simplified->Initialize();
+	int vertexCount = simplified->n_vertices();
+	int targetVertexCount = vertexCount * rate;
+
+	while (vertexCount > targetVertexCount && simplified->_deque.canDecimate()) {
+		simplified->Decimate(1);
+		vertexCount--;
+	}
+	if (vertexCount <= targetVertexCount) return;
 	
 	VIter v_it;
 	EIter e_it;
-	CompareCost compare = CompareCost(simplified, &cost);
-	int vertexCount = simplified->n_vertices();
 
+	CompareCost compare = CompareCost(simplified, &cost);
 	std::set<int, CompareCost> pq(compare);
 
-	if (threshold == 0) {
-		for (e_it = simplified->edges_begin(); e_it != simplified->edges_end(); ++e_it) {
-			Update_Edge(e_it.handle());
-			pq.insert(e_it.handle().idx());
-		}
+	for (e_it = simplified->edges_begin(); e_it != simplified->edges_end(); ++e_it) {
+		Update_Edge(e_it.handle());
+		pq.insert(e_it.handle().idx());
 	}
-	//test
-	/*auto top = pq.begin();
-	EdgeHandle eh = simplified->edge_handle(*top);
-
-	VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
-	VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));*/
-	
 	
 	// collapse the edge with smallest cost
 	// if the connected vertices form a concave polygon, ignore this edge
 	// repeat until the vertex number is lower than the target number
-	int targetVertexCount = vertexCount * rate;
 	while (vertexCount > targetVertexCount) {
-		if (simplified->_deque.canDecimate()) {
-			simplified->Decimate(1);
-			continue;
-		}
-
 		if (pq.size() == 0) break;
 		
 		auto top = pq.begin();
@@ -1130,7 +1121,7 @@ Tri_Mesh Tri_Mesh::simplify(float rate, float threshold) {
 
 	cout << "FINISH" << endl;
 	simplified->garbage_collection();
-	return *simplified;
+	return;
 }
 
 
@@ -1519,6 +1510,8 @@ void Tri_Mesh::Recover(int k) {
 }
 
 void Tri_Mesh::Initialize() {
+	this->normalizeModel();
+
 	this->add_property(cost);
 	this->add_property(QMat);
 	this->add_property(newPoint);

@@ -261,7 +261,7 @@ public:
 	bool DetermineConcaveByTwoPoints(VertexHandle *p1, VertexHandle *p2, Point *np);
 	void normalizeModel();
 
-	Tri_Mesh simplify(float rate, float threshold = 0);
+	void simplify(float rate);
 	Tri_Mesh averageSimplify();
 
 	//-------Edit Flag-------//
