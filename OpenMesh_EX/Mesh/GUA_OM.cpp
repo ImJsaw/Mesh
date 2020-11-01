@@ -1349,6 +1349,7 @@ void Tri_Mesh::Decimate(int k) {
 		DecimationLog* log = _deque.toDecimate();
 		if (log == nullptr) {
 			cout << "NULL" << endl;
+			garbage_collection();
 			return;
 		}
 
@@ -1385,6 +1386,8 @@ void Tri_Mesh::Decimate(int k) {
 			if (found) break;
 		}
 	}
+
+	garbage_collection();
 	cout << "FINISH" << endl;
 }
 
@@ -1396,6 +1399,7 @@ void Tri_Mesh::Recover(int k) {
 		DecimationLog* log = _deque.toRecover();
 		if (log == nullptr) {
 			cout << "NULL" << endl;
+			garbage_collection();
 			return;
 		}
 
