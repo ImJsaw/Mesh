@@ -262,6 +262,11 @@ public:
 	void normalizeModel();
 
 	void simplify(float rate);
+	//skeleton//
+	float getCot(const HHandle e);
+	double getArea(const FHandle f);
+	void getSkeleton();
+
 	Tri_Mesh averageSimplify();
 
 	//-------Edit Flag-------//
@@ -292,6 +297,8 @@ public:
 		}
 		return false;
 	}
+
+	bool isFirstLap;
 
 private:
 	OpenMesh::EPropHandleT<double> cost;
@@ -394,6 +401,14 @@ private:
 	};
 
 	LogDeque _deque;
+	double w0;
+	double _WL;
+	vector<double> _WH;
+	const double _SL = 2.0;
+	vector<VectorXd> getNewVert(double WL, vector<double> WH);
+	SparseMatrix<double> calculateL();
+	SparseMatrix<double> prepareLaplacian();
+
 };
 
 ///*======================================================================*/
