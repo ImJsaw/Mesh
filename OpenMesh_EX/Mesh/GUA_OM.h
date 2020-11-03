@@ -406,7 +406,7 @@ private:
 	vector<double> _WH;
 	const double _SL = 2.0;
 	vector<VectorXd> getNewVert(double WL, vector<double> WH);
-	SparseMatrix<double> calculateL();
+	SparseMatrix<double> calculateL(double WL);
 	SparseMatrix<double> prepareLaplacian();
 
 };

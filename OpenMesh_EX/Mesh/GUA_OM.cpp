@@ -1525,7 +1525,7 @@ void Tri_Mesh::Initialize() {
 
 void Tri_Mesh::getSkeleton() {
 	cout << "get skeleton" << endl;
-	const int smoothTime = 5;
+	const int smoothTime = 6;
 	//model avg area
 	double avgArea;
 	//get avg face area
@@ -1605,6 +1605,9 @@ void Tri_Mesh::getSkeleton() {
 }
 
 vector<VectorXd> Tri_Mesh::getNewVert(double WL, vector<double> WH) {
+
+	////////old assign //////
+	/*
 	SparseMatrix<double> L = calculateL();
 	// (WL) L   V' = 0
 	// WH		V' = WH V
@@ -1613,23 +1616,39 @@ vector<VectorXd> Tri_Mesh::getNewVert(double WL, vector<double> WH) {
 	//reserve place for WH
 	SparseMatrix<double> Left(L.rows() * 2, L.cols());
 	Left.reserve(L.nonZeros() + L.cols());
-
 	cout << "ready to assign" << this->n_vertices() << "vert," << L.rows() << "row," << L.cols() << "col" << endl;
 	//init left matrix
 	for (Index colIndex = 0; colIndex < L.cols(); colIndex++) {
 		//assign L
 		//cout << "assign L "<<colIndex << endl;
 		for (Index rowIndex = 0; rowIndex < L.rows(); rowIndex++) {
-			if (L.coeff(rowIndex, colIndex) * WL == 0) continue;
-			//cout << "insert " <<rowIndex<<","<< colIndex <<":"<< endl;
-			//cout << L.coeff(rowIndex, colIndex) * WL << endl;
-			Left.insert(rowIndex, colIndex) = L.coeff(rowIndex, colIndex) * WL;
+			if (L.coeff(rowIndex, colIndex) * WL != 0) {
+				//cout << "insert " <<rowIndex<<","<< colIndex <<":"<< endl;
+				//cout << L.coeff(rowIndex, colIndex) * WL << endl;
+				Left.insert(rowIndex, colIndex) = L.coeff(rowIndex, colIndex) * WL;
+			}
 		}
 		//cout << "assign WH " << colIndex << endl;
 		//assign WH
 		Left.insert(L.rows() + colIndex, colIndex) = WH[colIndex];
 	}
-	cout << "ready compress" << endl;
+	*/
+
+	///////new assign/////////
+	SparseMatrix<double> Left = calculateL(WL);
+	Left.conservativeResize(Left.rows() * 2, Left.cols());
+	Left.reserve(Left.nonZeros() + Left.cols());
+	cout << "reserve" << Left.nonZeros() + Left.cols()<<"with origin"<< Left.nonZeros() << endl;
+	const int col = Left.cols();
+	for (int colIndex = 0; colIndex < col; colIndex++) {
+		//cout << "assign WH " << Left.rows()+ colIndex << "," << colIndex << ":"<< WH[colIndex] << endl;
+		//assign WH
+		Left.insert(col + colIndex, colIndex) = WH[colIndex];
+	}
+	cout << "actual used" << Left.nonZeros() << endl;
+
+	/////////////////////////
+	cout << "compress" << endl;
 	Left.makeCompressed();
 	cout << "compressed" << endl;
 	//right matrix
@@ -1670,7 +1689,7 @@ vector<VectorXd> Tri_Mesh::getNewVert(double WL, vector<double> WH) {
 	return newVert;
 }
 
-SparseMatrix<double> Tri_Mesh::calculateL() {
+SparseMatrix<double> Tri_Mesh::calculateL(double WL) {
 	const int edge_size = this->n_edges();
 	SparseMatrix<double> L = prepareLaplacian();
 	cout << "prepare complete" << endl;
@@ -1689,7 +1708,7 @@ SparseMatrix<double> Tri_Mesh::calculateL() {
 			float cot = getCot(ve_it.handle());
 			const int toID = to_vertex_handle(ve_it.handle()).idx();
 			//cout << " L[" << index << "][" << toID<< "]="<<cot << endl;
-			L.coeffRef(index, toID) = cot;
+			L.coeffRef(index, toID) = cot * WL;
 			//L[index][toID] = cot;
 			sum -= cot;
 		}
@@ -1705,7 +1724,6 @@ SparseMatrix<double> Tri_Mesh::calculateL() {
 SparseMatrix<double> Tri_Mesh::prepareLaplacian() {
 	const int vertices = this->n_vertices();
 	SparseMatrix<double> A(vertices, vertices);
-
 	VectorXi sizes(vertices);
 	vector<vector<VHandle>> neighbors(vertices);
 	for (int i = 0; i < vertices; i++) {

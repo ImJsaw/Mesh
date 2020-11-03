@@ -727,6 +727,7 @@ namespace OpenMesh_EX {
 			mousePosition.push_back(mouseOnScreenY);
 			//cout << "click SCR : " << mouseOnScreenX << "," << mouseOnScreenY << endl;
 			//read face
+			/*
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 			glReadPixels(e->X, hkoglPanelControl1->Height - e->Y, 1, 1, GL_RGBA, GL_FLOAT, &pixel);
@@ -739,6 +740,7 @@ namespace OpenMesh_EX {
 				std::cout << "meshUV.size() : " << meshUV[objptr].size() << "vertices.size()" << vertices[objptr].size() << endl;
 				std::cout << "face" << face[objptr] << std::endl;
 			}
+			*/
 			lastValue = trackBar1->Value;
 
 			/*
