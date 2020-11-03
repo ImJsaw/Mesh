@@ -5,72 +5,57 @@
 
 using namespace std;
 
-class TriVertex
-{
+class TriVertex {
 public:
 	double x;
 	double y;
 	double z;
-	TriVertex()
-	{
+	TriVertex() {
 		this->x = 0;
 		this->y = 0;
 		this->z = 0;
 	}
-	TriVertex(double x, double y, double z)
-	{
+	TriVertex(double x, double y, double z) {
 		this->x = x;
 		this->y = y;
 		this->z = z;
 	}
 
-	~TriVertex()
-	{
-	}
+	~TriVertex() {}
 
-	bool operator ==(const TriVertex& b)
-	{
-		if (this->x == b.x && this->y == b.y && this->z == b.z)
-		{
+	bool operator ==(const TriVertex& b) {
+		if (this->x == b.x && this->y == b.y && this->z == b.z) {
 			return true;
 		}
-		else
-		{
+		else {
 			return false;
 		}
 	}
-	friend ostream &operator<<(ostream& os, const TriVertex& tv)
-	{
+	friend ostream &operator<<(ostream& os, const TriVertex& tv) {
 		os << "(" << tv.x << ", " << tv.y << ", " << tv.z << ")";
 		return os;
 	}
 
 };
-class TriLine
-{
+class TriLine {
 public:
 	TriVertex p1;
 	TriVertex p2;
 	double vector[3];
 
-	TriLine(TriVertex &p1, TriVertex &p2)
-	{
+	TriLine(TriVertex &p1, TriVertex &p2) {
 		this->p1 = p1;
 		this->p2 = p2;
 		vector[0] = p2.x - p1.x;
 		vector[1] = p2.y - p1.y;
 		vector[2] = p2.z - p1.z;
 	}
-	~TriLine()
-	{
-	}
-	friend ostream &operator<<(ostream& os, const TriLine& line)
-	{
+	~TriLine() {}
+	friend ostream &operator<<(ostream& os, const TriLine& line) {
 		os << "[" << line.p1 << " -> " << line.p2 << "]";
 		return os;
 	}
-	double static cross(TriLine & line1, TriLine& line2)
-	{
+	double static cross(TriLine & line1, TriLine& line2) {
 		return line1.vector[0] * line2.vector[0] + line1.vector[1] * line2.vector[1] + line1.vector[2] * line2.vector[2];
 	}
 
@@ -1128,10 +1113,8 @@ void Tri_Mesh::simplify(float rate) {
 Matrix4d Tri_Mesh::calculateQ(VertexHandle vhandle) {
 	VVIter vv_it;
 	Matrix4d q = Matrix4d();
-	for (int i = 0; i < 4; i++)
-	{
-		for (int j = 0; j < 4; j++)
-		{
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
 			q(i, j) = 0.0;
 		}
 	}
@@ -1223,23 +1206,18 @@ void Tri_Mesh::oneRingCollapse(VHandle vhandle) {
 }
 
 
-bool Tri_Mesh::DetermineConcaveByTwoPoints(VertexHandle *p1, VertexHandle *p2, Point* np)
-{
+bool Tri_Mesh::DetermineConcaveByTwoPoints(VertexHandle *p1, VertexHandle *p2, Point* np) {
 	Point v1 = point((*p1));
 	Point v2 = point((*p2));
-	for (VertexFaceIter vf_it = vf_begin(*p1); vf_it != vf_end(*p1); ++vf_it)
-	{
+	for (VertexFaceIter vf_it = vf_begin(*p1); vf_it != vf_end(*p1); ++vf_it) {
 		vector<Point> oldVector;
 		vector<Point> newVector;
-		for (FaceVertexIter fv_it = fv_iter(vf_it); fv_it; fv_it++)
-		{
+		for (FaceVertexIter fv_it = fv_iter(vf_it); fv_it; fv_it++) {
 			Point p = point(fv_it);
-			if (p == v1)
-			{
+			if (p == v1) {
 				continue;
 			}
-			else
-			{
+			else {
 				oldVector.push_back((v1 - p).normalize());
 				newVector.push_back(((*np) - p).normalize());
 			}
@@ -1251,27 +1229,22 @@ bool Tri_Mesh::DetermineConcaveByTwoPoints(VertexHandle *p1, VertexHandle *p2, P
 			newVector[0][0] * newVector[1][2] - newVector[0][2] * newVector[1][0],
 			newVector[0][0] * newVector[1][1] - newVector[0][1] * newVector[1][0] };
 		double dot = oldCross[0] * newCross[0] + oldCross[1] * newCross[1] + oldCross[2] * newCross[2];
-		if (dot < 0)
-		{
+		if (dot < 0) {
 			return false;
 		}
 	}
 
 
-	for (VertexFaceIter vf_it = vf_begin(*p2); vf_it != vf_end(*p2); ++vf_it)
-	{
+	for (VertexFaceIter vf_it = vf_begin(*p2); vf_it != vf_end(*p2); ++vf_it) {
 		vector<Point> oldVector;
 		vector<Point> newVector;
 
-		for (FaceVertexIter fv_it = fv_iter(vf_it); fv_it; fv_it++)
-		{
+		for (FaceVertexIter fv_it = fv_iter(vf_it); fv_it; fv_it++) {
 			Point p = point(fv_it);
-			if (p == v2)
-			{
+			if (p == v2) {
 				continue;
 			}
-			else
-			{
+			else {
 				oldVector.push_back((p - v2).normalize());
 				newVector.push_back((p - (*np)).normalize());
 			}
@@ -1283,8 +1256,7 @@ bool Tri_Mesh::DetermineConcaveByTwoPoints(VertexHandle *p1, VertexHandle *p2, P
 			newVector[0][0] * newVector[1][2] - newVector[0][2] * newVector[1][0],
 			newVector[0][0] * newVector[1][1] - newVector[0][1] * newVector[1][0] };
 		double dot = oldCross[0] * newCross[0] + oldCross[1] * newCross[1] + oldCross[2] * newCross[2];
-		if (dot < 0)
-		{
+		if (dot < 0) {
 			return false;
 		}
 	}
@@ -1293,8 +1265,7 @@ bool Tri_Mesh::DetermineConcaveByTwoPoints(VertexHandle *p1, VertexHandle *p2, P
 }
 
 
-void Tri_Mesh::normalizeModel()
-{
+void Tri_Mesh::normalizeModel() {
 	double maxX = *(point(vertices_begin().handle()).data());
 	double minX = *(point(vertices_begin().handle()).data());
 	double maxY = *(point(vertices_begin().handle()).data() + 1);
@@ -1302,8 +1273,7 @@ void Tri_Mesh::normalizeModel()
 	double maxZ = *(point(vertices_begin().handle()).data() + 2);
 	double minZ = *(point(vertices_begin().handle()).data() + 2);
 
-	for (VertexIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it)
-	{
+	for (VertexIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it) {
 		double posX = *(point(v_it.handle()).data());
 		double posY = *(point(v_it.handle()).data() + 1);
 		double posZ = *(point(v_it.handle()).data() + 2);
@@ -1320,8 +1290,7 @@ void Tri_Mesh::normalizeModel()
 	double center[3] = { (maxX + minX) / 2, (maxY + minY) / 2, (maxZ + minZ) / 2 };
 
 
-	for (VertexIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it)
-	{
+	for (VertexIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it) {
 		double posX = *(point(v_it.handle()).data());
 		double posY = *(point(v_it.handle()).data() + 1);
 		double posZ = *(point(v_it.handle()).data() + 2);
@@ -1557,7 +1526,7 @@ void Tri_Mesh::getSkeleton() {
 	cout << "avg area:" << avgArea << "from " << faceCount << "face, area total" << areaSum << endl;
 
 	for (int i = 0; i < smoothTime; i++) {
-		cout << "smmoth" << i << endl;
+		cout << "--" << endl << "smooth" << i << endl;
 		//update area
 		for (FIter f_it = this->faces_begin(); f_it != this->faces_end(); ++f_it) {
 			double area = getArea(f_it.handle());
@@ -1578,7 +1547,7 @@ void Tri_Mesh::getSkeleton() {
 			//this->set_point(*v_it, p);
 			//cout << "update point " << index << "to " << p << endl;
 		}
-		cout << "update." << endl;
+		//cout << "update." << endl;
 		//update WH, WL
 		_WH.resize(vertices);
 		for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
@@ -1605,50 +1574,28 @@ void Tri_Mesh::getSkeleton() {
 }
 
 vector<VectorXd> Tri_Mesh::getNewVert(double WL, vector<double> WH) {
-
-	////////old assign //////
-	/*
-	SparseMatrix<double> L = calculateL();
 	// (WL) L   V' = 0
 	// WH		V' = WH V
 
-	//
-	//reserve place for WH
-	SparseMatrix<double> Left(L.rows() * 2, L.cols());
-	Left.reserve(L.nonZeros() + L.cols());
-	cout << "ready to assign" << this->n_vertices() << "vert," << L.rows() << "row," << L.cols() << "col" << endl;
-	//init left matrix
-	for (Index colIndex = 0; colIndex < L.cols(); colIndex++) {
-		//assign L
-		//cout << "assign L "<<colIndex << endl;
-		for (Index rowIndex = 0; rowIndex < L.rows(); rowIndex++) {
-			if (L.coeff(rowIndex, colIndex) * WL != 0) {
-				//cout << "insert " <<rowIndex<<","<< colIndex <<":"<< endl;
-				//cout << L.coeff(rowIndex, colIndex) * WL << endl;
-				Left.insert(rowIndex, colIndex) = L.coeff(rowIndex, colIndex) * WL;
-			}
-		}
-		//cout << "assign WH " << colIndex << endl;
-		//assign WH
-		Left.insert(L.rows() + colIndex, colIndex) = WH[colIndex];
-	}
-	*/
+	SparseMatrix<double> L = calculateL()*WL;
+	SparseMatrix<double> WHMatrix(L.rows(), L.cols());
 
-	///////new assign/////////
-	SparseMatrix<double> Left = calculateL(WL);
-	Left.conservativeResize(Left.rows() * 2, Left.cols());
-	Left.reserve(Left.nonZeros() + Left.cols());
-	cout << "reserve" << Left.nonZeros() + Left.cols()<<"with origin"<< Left.nonZeros() << endl;
-	const int col = Left.cols();
+	const int col = L.cols();
 	for (int colIndex = 0; colIndex < col; colIndex++) {
 		//cout << "assign WH " << Left.rows()+ colIndex << "," << colIndex << ":"<< WH[colIndex] << endl;
 		//assign WH
-		Left.insert(col + colIndex, colIndex) = WH[colIndex];
+		WHMatrix.insert(colIndex, colIndex) = WH[colIndex];
 	}
-	cout << "actual used" << Left.nonZeros() << endl;
-
-	/////////////////////////
-	cout << "compress" << endl;
+	SparseMatrix<double> Left(L.rows() + WHMatrix.rows(), L.cols());
+	Left.reserve(L.nonZeros() + WHMatrix.nonZeros());
+	for (Index c = 0; c < L.cols(); ++c) {
+		Left.startVec(c); // Important: Must be called once for each column before inserting!
+		for (SparseMatrix<double>::InnerIterator itL(L, c); itL; ++itL)
+			Left.insertBack(itL.row(), c) = itL.value();
+		for (SparseMatrix<double>::InnerIterator itC(WHMatrix, c); itC; ++itC)
+			Left.insertBack(itC.row() + L.rows(), c) = itC.value();
+	}
+	Left.finalize();
 	Left.makeCompressed();
 	cout << "compressed" << endl;
 	//right matrix
@@ -1674,25 +1621,21 @@ vector<VectorXd> Tri_Mesh::getNewVert(double WL, vector<double> WH) {
 		right[2][vertices + index] = point(v_it.handle())[2] * WH[index];
 	}
 
-	cout << "ready solve linear system..." << endl;
+	cout << "solving linear system..." << endl;
 	//solve linear system.
 	SimplicialLDLT<SparseMatrix<double>> linearSolver;
-
-
 	linearSolver.compute(Left.transpose() * Left);
 	vector<VectorXd> newVert;
 	newVert.resize(3);
 	newVert[0] = linearSolver.solve(Left.transpose() * right[0]);
 	newVert[1] = linearSolver.solve(Left.transpose() * right[1]);
 	newVert[2] = linearSolver.solve(Left.transpose() * right[2]);
-	cout << "solve complete" << endl;
 	return newVert;
 }
 
-SparseMatrix<double> Tri_Mesh::calculateL(double WL) {
+SparseMatrix<double> Tri_Mesh::calculateL() {
 	const int edge_size = this->n_edges();
 	SparseMatrix<double> L = prepareLaplacian();
-	cout << "prepare complete" << endl;
 	VIter v_it;
 	VOHIter ve_it;
 	//i
@@ -1708,7 +1651,7 @@ SparseMatrix<double> Tri_Mesh::calculateL(double WL) {
 			float cot = getCot(ve_it.handle());
 			const int toID = to_vertex_handle(ve_it.handle()).idx();
 			//cout << " L[" << index << "][" << toID<< "]="<<cot << endl;
-			L.coeffRef(index, toID) = cot * WL;
+			L.coeffRef(index, toID) = cot;
 			//L[index][toID] = cot;
 			sum -= cot;
 		}
@@ -1717,7 +1660,6 @@ SparseMatrix<double> Tri_Mesh::calculateL(double WL) {
 		L.coeffRef(index, index) = sum;
 		//L[index][index] = sum / count;
 	}
-	cout << "L complete" << endl;
 	return L;
 }
 
