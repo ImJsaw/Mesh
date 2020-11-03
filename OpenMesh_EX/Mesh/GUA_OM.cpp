@@ -1042,7 +1042,8 @@ void Tri_Mesh::simplify(float rate) {
 	clock_t t1;
 	t1 = clock();
 	cout << (double)(t1) / CLOCKS_PER_SEC << endl;
-	Tri_Mesh* simplified = this;
+	Tri_Mesh newObj(*this);
+	Tri_Mesh* simplified = &newObj;
 	int vertexCount = simplified->n_vertices();
 	int targetVertexCount = vertexCount * rate;
 
@@ -1069,39 +1070,39 @@ void Tri_Mesh::simplify(float rate) {
 	int updateEdgeCount = 0;
 	int pqInsertCount = 0;
 	while (vertexCount > targetVertexCount) {
-		if (pq.size() == 0) break;
+		//cout << vertexCount << endl;
+		if (simplified->pq.size() == 0) break;
 
-		auto top = pq.begin();
+		auto top = simplified->pq.begin();
 		EdgeHandle eh = simplified->edge_handle(*top);
 
-		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
-		VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));
+		VertexHandle from = simplified->from_vertex_handle(halfedge_handle(eh, 0));
+		VertexHandle remain = simplified->to_vertex_handle(halfedge_handle(eh, 0));
 		Point np = simplified->property(newPoint, eh);
 
 		// pop the edge with the smallest cost
-		pq.erase(*top);
+		simplified->pq.erase(*top);
 
 		if (!from.is_valid() || !remain.is_valid() || !eh.is_valid()) {
 			continue;
 		}
 		
 		
-		if (is_collapse_ok(halfedge_handle(eh, 0)) && DetermineConcaveByTwoPoints(&from, &remain, &np)) {
-			//Point np = simplified->property(newPoint, eh);
-			RollbackInfo* info1 = new RollbackInfo(from.idx(), this);
-			RollbackInfo* info2 = new RollbackInfo(remain.idx(), this);
+		if (simplified->is_collapse_ok(halfedge_handle(eh, 0)) && simplified->DetermineConcaveByTwoPoints(&from, &remain, &np)) {
+			RollbackInfo* info1 = new RollbackInfo(from.idx(), simplified);
+			RollbackInfo* info2 = new RollbackInfo(remain.idx(), simplified);
 
 			// remove connected edges in pq
 			VertexEdgeIter ve_it = simplified->ve_iter(from);
 			for (; ve_it.is_valid(); ++ve_it) {
-				pq.erase(ve_it.handle().idx());
+				simplified->pq.erase(ve_it.handle().idx());
 			}
 
 			ve_it = simplified->ve_iter(remain);
-			vector<VertexEdgeIter> remainEdge;
+			//vector<VertexEdgeIter> remainEdge;
 			for (; ve_it.is_valid(); ++ve_it) {
-				//pq.erase(ve_it.handle().idx());
-				remainEdge.push_back(ve_it);
+				simplified->pq.erase(ve_it.handle().idx());
+				//remainEdge.push_back(ve_it);
 			}
 
 			// collapse
@@ -1119,15 +1120,13 @@ void Tri_Mesh::simplify(float rate) {
 			ve_it = simplified->ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
 				updateEdgeCount++;
-				Update_Edge(ve_it.handle());
-				if (std::find(remainEdge.begin(), remainEdge.end(), ve_it) == remainEdge.end())
-				{
+				simplified->Update_Edge(ve_it.handle());
+				//if (std::find(remainEdge.begin(), remainEdge.end(), ve_it) == remainEdge.end())
+				//{
 					pqInsertCount++;
-					pq.insert(ve_it.handle().idx());
-				}
-				
+					simplified->pq.insert(ve_it.handle().idx());
+				//}
 			}
-
 			vertexCount--;
 			_deque.toDecimate();
 		}
