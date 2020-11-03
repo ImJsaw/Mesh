@@ -304,14 +304,22 @@ private:
 	OpenMesh::EPropHandleT<double> cost;
 	OpenMesh::VPropHandleT<Matrix4d> QMat;
 	OpenMesh::EPropHandleT<Point> newPoint;
-
+	
 	struct CompareCost {
 		Tri_Mesh* mesh;
 		OpenMesh::EPropHandleT<double>* cost;
+		CompareCost() {
+
+			
+		}
 
 		CompareCost(Tri_Mesh* _mesh, OpenMesh::EPropHandleT<double>* _cost) {
 			mesh = _mesh;
 			cost = _cost;
+		}
+		bool operator()() const
+		{
+			return false;
 		}
 
 		bool operator()(const int p1, const int p2) const
@@ -321,6 +329,7 @@ private:
 			return mesh->property(*cost, edgeHandle1) < mesh->property(*cost, edgeHandle2);
 		}
 	};
+	std::set<int, CompareCost> pq;
 
 	struct RollbackInfo {
 	public:

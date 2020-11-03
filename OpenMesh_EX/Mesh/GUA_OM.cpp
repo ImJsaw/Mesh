@@ -1005,22 +1005,39 @@ void Tri_Mesh::Update_Edge(EdgeHandle eh) {
 	m(3, 1) = 0.0f;
 	m(3, 2) = 0.0f;
 	m(3, 3) = 1.0f;
-
-	Vector4d x = m.inverse() * (Vector4d(0, 0, 0, 1));
 	Vector4d newV;
 	if (m.determinant() == 0.0f) {
 		Point temp = (point(to) + point(from)) / 2;
 		newV = Vector4d(temp[0], temp[1], temp[2], 1);
 	}
 	else {
+		Vector4d x = m.inverse() * (Vector4d(0, 0, 0, 1));
+		//Vector4d x = m.llt().solve(Vector4d(0, 0, 0, 1));
 		newV = x;
 	}
-
+	
+	
 	Point newP = Point(newV(0), newV(1), newV(2));
 
-	auto cur_cost = (newV.transpose() * newQ * newV)(0, 0);
-	this->property(cost, eh) = cur_cost;
+	//double cur_cost = (newV.transpose() * newQ * newV)(0, 0);
+	double newcost = 0;
+	double VtQ[4];
+	
+	for (int i = 0; i < 4; i++)
+	{
+		VtQ[i] = newV(0) * newQ(0, i) + newV(1) * newQ(1, i) + newV(2) * newQ(2, i) + newV(3) * newQ(3, i);
+	}
+	
+	for (int i = 0; i < 4; i++)
+	{
+		newcost += VtQ[i] * newV(i);
+	}
+	//cout << cur_cost << ", " << newcost << endl;
+	//this->property(cost, eh) = cur_cost;
+	this->property(cost, eh) = newcost;
 	this->property(newPoint, eh) = newP;
+
+	
 }
 
 void Tri_Mesh::simplify(float rate) {
@@ -1037,13 +1054,20 @@ void Tri_Mesh::simplify(float rate) {
 	VIter v_it;
 	EIter e_it;
 
-	CompareCost compare = CompareCost(simplified, &cost);
-	std::set<int, CompareCost> pq(compare);
+	//CompareCost compare = CompareCost(simplified, &cost);
+	//std::set<int, CompareCost> pq(compare);
 
-	for (e_it = simplified->edges_begin(); e_it != simplified->edges_end(); ++e_it) {
+	clock_t t1;
+	t1 = clock();
+	cout << (double)(t1) / CLOCKS_PER_SEC << endl;
+
+	/*for (e_it = simplified->edges_begin(); e_it != simplified->edges_end(); ++e_it) {
 		Update_Edge(e_it.handle());
 		pq.insert(e_it.handle().idx());
-	}
+	}*/
+	
+	t1 = clock();
+	cout << (double)(t1) / CLOCKS_PER_SEC << endl;
 
 	// collapse the edge with smallest cost
 	// if the connected vertices form a concave polygon, ignore this edge
@@ -1064,9 +1088,10 @@ void Tri_Mesh::simplify(float rate) {
 		if (!from.is_valid() || !remain.is_valid() || !eh.is_valid()) {
 			continue;
 		}
-
+		
+		
 		if (is_collapse_ok(halfedge_handle(eh, 0)) && DetermineConcaveByTwoPoints(&from, &remain, &np)) {
-			Point np = simplified->property(newPoint, eh);
+			//Point np = simplified->property(newPoint, eh);
 			RollbackInfo* info1 = new RollbackInfo(from.idx(), this);
 			RollbackInfo* info2 = new RollbackInfo(remain.idx(), this);
 
@@ -1102,8 +1127,10 @@ void Tri_Mesh::simplify(float rate) {
 			vertexCount--;
 			_deque.toDecimate();
 		}
-	}
 
+	}
+	t1 = clock();
+	cout << (double)(t1) / CLOCKS_PER_SEC << endl;
 	cout << "FINISH" << endl;
 	simplified->garbage_collection();
 	return;
@@ -1113,12 +1140,14 @@ void Tri_Mesh::simplify(float rate) {
 Matrix4d Tri_Mesh::calculateQ(VertexHandle vhandle) {
 	VVIter vv_it;
 	Matrix4d q = Matrix4d();
+
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
 			q(i, j) = 0.0;
 		}
 	}
 	Point v = point(vhandle);
+	//#pragma omp parallel for
 	for (VFIter vf_it = vf_iter(vhandle); vf_it.is_valid(); ++vf_it) {
 		Point p = normal(vf_it);
 
@@ -1490,6 +1519,16 @@ void Tri_Mesh::Initialize() {
 		Matrix4d q = calculateQ(v_it.handle());
 		this->property(QMat, *v_it) = q;
 	}
+
+	CompareCost compare = CompareCost(this, &cost);
+	std::set<int, CompareCost> newPQ(compare);
+	EIter e_it;
+	for (e_it = this->edges_begin(); e_it != this->edges_end(); ++e_it) {
+		Update_Edge(e_it.handle());
+		newPQ.insert(e_it.handle().idx());
+	}
+	pq = newPQ;
+	cout << "Initialize finish" << endl;
 }
 
 void Tri_Mesh::getSkeleton() {
