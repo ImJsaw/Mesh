@@ -1012,10 +1012,8 @@ void Tri_Mesh::Update_Edge(EdgeHandle eh) {
 	}
 	else {
 		Vector4d x = m.inverse() * (Vector4d(0, 0, 0, 1));
-		//Vector4d x = m.llt().solve(Vector4d(0, 0, 0, 1));
 		newV = x;
 	}
-	
 	
 	Point newP = Point(newV(0), newV(1), newV(2));
 
@@ -1041,6 +1039,9 @@ void Tri_Mesh::Update_Edge(EdgeHandle eh) {
 }
 
 void Tri_Mesh::simplify(float rate) {
+	clock_t t1;
+	t1 = clock();
+	cout << (double)(t1) / CLOCKS_PER_SEC << endl;
 	Tri_Mesh* simplified = this;
 	int vertexCount = simplified->n_vertices();
 	int targetVertexCount = vertexCount * rate;
@@ -1057,21 +1058,16 @@ void Tri_Mesh::simplify(float rate) {
 	//CompareCost compare = CompareCost(simplified, &cost);
 	//std::set<int, CompareCost> pq(compare);
 
-	clock_t t1;
-	t1 = clock();
-	cout << (double)(t1) / CLOCKS_PER_SEC << endl;
-
 	/*for (e_it = simplified->edges_begin(); e_it != simplified->edges_end(); ++e_it) {
 		Update_Edge(e_it.handle());
 		pq.insert(e_it.handle().idx());
 	}*/
-	
-	t1 = clock();
-	cout << (double)(t1) / CLOCKS_PER_SEC << endl;
 
 	// collapse the edge with smallest cost
 	// if the connected vertices form a concave polygon, ignore this edge
 	// repeat until the vertex number is lower than the target number
+	int updateEdgeCount = 0;
+	int pqInsertCount = 0;
 	while (vertexCount > targetVertexCount) {
 		if (pq.size() == 0) break;
 
@@ -1102,8 +1098,10 @@ void Tri_Mesh::simplify(float rate) {
 			}
 
 			ve_it = simplified->ve_iter(remain);
+			vector<VertexEdgeIter> remainEdge;
 			for (; ve_it.is_valid(); ++ve_it) {
-				pq.erase(ve_it.handle().idx());
+				//pq.erase(ve_it.handle().idx());
+				remainEdge.push_back(ve_it);
 			}
 
 			// collapse
@@ -1120,8 +1118,14 @@ void Tri_Mesh::simplify(float rate) {
 			// update the cost of connected edges and push them back to the pq
 			ve_it = simplified->ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
+				updateEdgeCount++;
 				Update_Edge(ve_it.handle());
-				pq.insert(ve_it.handle().idx());
+				if (std::find(remainEdge.begin(), remainEdge.end(), ve_it) == remainEdge.end())
+				{
+					pqInsertCount++;
+					pq.insert(ve_it.handle().idx());
+				}
+				
 			}
 
 			vertexCount--;
@@ -1131,6 +1135,8 @@ void Tri_Mesh::simplify(float rate) {
 	}
 	t1 = clock();
 	cout << (double)(t1) / CLOCKS_PER_SEC << endl;
+	cout << "updateEdgeCount: " << updateEdgeCount << endl;
+	cout << "pqInsertCount: " << pqInsertCount << endl;
 	cout << "FINISH" << endl;
 	simplified->garbage_collection();
 	return;
