@@ -1536,9 +1536,14 @@ void Tri_Mesh::Initialize() {
 	cout << "Initialize finish" << endl;
 }
 
+void Tri_Mesh::face2Edge() {
+	//TODO
+	return;
+}
+
 void Tri_Mesh::getSkeleton() {
 	cout << "get skeleton" << endl;
-	const int smoothTime = 6;
+	const int smoothTime = 20;
 	//model avg area
 	double avgArea;
 	//get avg face area
@@ -1565,16 +1570,23 @@ void Tri_Mesh::getSkeleton() {
 	for (int i = 0; i < _WH.size(); i++)
 		_WH[i] = w0;
 	//WL init
-	_WL = 700 * sqrt(avgArea);
+	_WL = 1 * sqrt(avgArea);
 
 	cout << "avg area:" << avgArea << "from " << faceCount << "face, area total" << areaSum << endl;
 
 	for (int i = 0; i < smoothTime; i++) {
 		cout << "--" << endl << "smooth" << i << endl;
 		//update area
+		areaSum = 0;
 		for (FIter f_it = this->faces_begin(); f_it != this->faces_end(); ++f_it) {
 			double area = getArea(f_it.handle());
 			property(curArea, f_it.handle()) = area;
+			areaSum += area;
+		}
+		cout << "area ratio : " << areaSum / avgArea / faceCount << endl;
+		if (areaSum / avgArea / faceCount < 0.5) {
+			cout << "ratio :" << areaSum / avgArea / faceCount << ", stop" << endl;
+			break;
 		}
 
 		vector<VectorXd> newV = getNewVert(_WL, _WH);
@@ -1591,6 +1603,8 @@ void Tri_Mesh::getSkeleton() {
 			//this->set_point(*v_it, p);
 			//cout << "update point " << index << "to " << p << endl;
 		}
+
+		
 		//cout << "update." << endl;
 		//update WH, WL
 		_WH.resize(vertices);

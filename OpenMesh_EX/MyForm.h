@@ -275,6 +275,7 @@ namespace OpenMesh_EX {
 	private: System::Windows::Forms::ToolStripMenuItem^  decimateToolStripMenuItem;
 	private: System::Windows::Forms::TrackBar^  trackBar1;
 	private: System::Windows::Forms::ToolStripMenuItem^  skeletonExtractionToolStripMenuItem;
+	private: System::Windows::Forms::ToolStripMenuItem^  face2EdgeToolStripMenuItem;
 
 	protected:
 
@@ -290,8 +291,8 @@ namespace OpenMesh_EX {
 		/// 這個方法的內容。
 		/// </summary>
 		void InitializeComponent(void) {
-			HKOGLPanel::HKCOGLPanelCameraSetting^  hkcoglPanelCameraSetting1 = (gcnew HKOGLPanel::HKCOGLPanelCameraSetting());
-			HKOGLPanel::HKCOGLPanelPixelFormat^  hkcoglPanelPixelFormat1 = (gcnew HKOGLPanel::HKCOGLPanelPixelFormat());
+			HKOGLPanel::HKCOGLPanelCameraSetting^  hkcoglPanelCameraSetting2 = (gcnew HKOGLPanel::HKCOGLPanelCameraSetting());
+			HKOGLPanel::HKCOGLPanelPixelFormat^  hkcoglPanelPixelFormat2 = (gcnew HKOGLPanel::HKCOGLPanelPixelFormat());
 			this->menuStrip1 = (gcnew System::Windows::Forms::MenuStrip());
 			this->fileToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->loadModelToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
@@ -300,6 +301,7 @@ namespace OpenMesh_EX {
 			this->decimateToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->errorQuadricToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->skeletonExtractionToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
+			this->face2EdgeToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->openModelDialog = (gcnew System::Windows::Forms::OpenFileDialog());
 			this->saveModelDialog = (gcnew System::Windows::Forms::SaveFileDialog());
 			this->hkoglPanelControl1 = (gcnew HKOGLPanel::HKOGLPanelControl());
@@ -313,9 +315,10 @@ namespace OpenMesh_EX {
 			// menuStrip1
 			// 
 			this->menuStrip1->ImageScalingSize = System::Drawing::Size(20, 20);
-			this->menuStrip1->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(5) {
+			this->menuStrip1->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(6) {
 				this->fileToolStripMenuItem,
-					this->recoverToolStripMenuItem, this->decimateToolStripMenuItem, this->errorQuadricToolStripMenuItem, this->skeletonExtractionToolStripMenuItem
+					this->recoverToolStripMenuItem, this->decimateToolStripMenuItem, this->errorQuadricToolStripMenuItem, this->skeletonExtractionToolStripMenuItem,
+					this->face2EdgeToolStripMenuItem
 			});
 			this->menuStrip1->Location = System::Drawing::Point(0, 0);
 			this->menuStrip1->Name = L"menuStrip1";
@@ -372,9 +375,16 @@ namespace OpenMesh_EX {
 			// skeletonExtractionToolStripMenuItem
 			// 
 			this->skeletonExtractionToolStripMenuItem->Name = L"skeletonExtractionToolStripMenuItem";
-			this->skeletonExtractionToolStripMenuItem->Size = System::Drawing::Size(94, 20);
+			this->skeletonExtractionToolStripMenuItem->Size = System::Drawing::Size(127, 20);
 			this->skeletonExtractionToolStripMenuItem->Text = L"Skeleton Extraction";
 			this->skeletonExtractionToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::skeletonExtractionToolStripMenuItem_Click);
+			// 
+			// face2EdgeToolStripMenuItem
+			// 
+			this->face2EdgeToolStripMenuItem->Name = L"face2EdgeToolStripMenuItem";
+			this->face2EdgeToolStripMenuItem->Size = System::Drawing::Size(82, 20);
+			this->face2EdgeToolStripMenuItem->Text = L"Face2Edge";
+			this->skeletonExtractionToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::face2EdgeToolStripMenuItem_Click);
 			// 
 			// openModelDialog
 			// 
@@ -387,18 +397,18 @@ namespace OpenMesh_EX {
 			// 
 			// hkoglPanelControl1
 			// 
-			hkcoglPanelCameraSetting1->Far = 1000;
-			hkcoglPanelCameraSetting1->Fov = 45;
-			hkcoglPanelCameraSetting1->Near = -1000;
-			hkcoglPanelCameraSetting1->Type = HKOGLPanel::HKCOGLPanelCameraSetting::CAMERATYPE::ORTHOGRAPHIC;
-			this->hkoglPanelControl1->Camera_Setting = hkcoglPanelCameraSetting1;
+			hkcoglPanelCameraSetting2->Far = 1000;
+			hkcoglPanelCameraSetting2->Fov = 45;
+			hkcoglPanelCameraSetting2->Near = -1000;
+			hkcoglPanelCameraSetting2->Type = HKOGLPanel::HKCOGLPanelCameraSetting::CAMERATYPE::ORTHOGRAPHIC;
+			this->hkoglPanelControl1->Camera_Setting = hkcoglPanelCameraSetting2;
 			this->hkoglPanelControl1->Dock = System::Windows::Forms::DockStyle::Fill;
 			this->hkoglPanelControl1->Location = System::Drawing::Point(3, 3);
 			this->hkoglPanelControl1->Name = L"hkoglPanelControl1";
-			hkcoglPanelPixelFormat1->Accumu_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
-			hkcoglPanelPixelFormat1->Alpha_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
-			hkcoglPanelPixelFormat1->Stencil_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
-			this->hkoglPanelControl1->Pixel_Format = hkcoglPanelPixelFormat1;
+			hkcoglPanelPixelFormat2->Accumu_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
+			hkcoglPanelPixelFormat2->Alpha_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
+			hkcoglPanelPixelFormat2->Stencil_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
+			this->hkoglPanelControl1->Pixel_Format = hkcoglPanelPixelFormat2;
 			this->hkoglPanelControl1->Size = System::Drawing::Size(1044, 494);
 			this->hkoglPanelControl1->TabIndex = 2;
 			this->hkoglPanelControl1->Load += gcnew System::EventHandler(this, &MyForm::hkoglPanelControl1_Load);
@@ -427,9 +437,9 @@ namespace OpenMesh_EX {
 			// 
 			// trackBar1
 			// 
-			this->trackBar1->Location = System::Drawing::Point(605, 0);
+			this->trackBar1->Location = System::Drawing::Point(485, 0);
 			this->trackBar1->Name = L"trackBar1";
-			this->trackBar1->Size = System::Drawing::Size(312, 45);
+			this->trackBar1->Size = System::Drawing::Size(432, 45);
 			this->trackBar1->TabIndex = 4;
 			this->trackBar1->MouseDown += gcnew System::Windows::Forms::MouseEventHandler(this, &MyForm::trackBar1_MouseDown);
 			this->trackBar1->MouseUp += gcnew System::Windows::Forms::MouseEventHandler(this, &MyForm::trackBar1_MouseUp);
@@ -696,7 +706,7 @@ namespace OpenMesh_EX {
 		if (trackBar1->Value != lastValue) {
 			int x = trackBar1->Value - lastValue;
 			cout << x << endl;
-			
+
 			if (x > 0) {
 				mesh->Recover(x);
 			}
@@ -939,10 +949,34 @@ namespace OpenMesh_EX {
 			std::cout << "face" << face[0] << std::endl;
 
 			hkoglPanelControl1->Invalidate();
+
+			//face 2 edge
+
 		}
 		else
 			cout << "mesh null" << endl;
 	}
-};
+
+	private: System::Void face2EdgeToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
+		if (mesh != NULL) {
+			mesh->getSkeleton();
+			for (int i = 0; i < OBJ_NUM; i++) {
+				vertices[i].clear();
+				face[i] = 0;
+				meshUV[i].clear();
+			}
+			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
+			std::cout << "vertices.size()" << vertices[0].size() << endl;
+			std::cout << "face" << face[0] << std::endl;
+
+			hkoglPanelControl1->Invalidate();
+
+			//face 2 edge
+
+		}
+		else
+			cout << "mesh null" << endl;
+	}
+	};
 
 }

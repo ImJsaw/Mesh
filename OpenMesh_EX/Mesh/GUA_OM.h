@@ -266,6 +266,7 @@ public:
 	float getCot(const HHandle e);
 	double getArea(const FHandle f);
 	void getSkeleton();
+	void face2Edge();
 
 	Tri_Mesh averageSimplify();
 
@@ -413,7 +414,7 @@ private:
 	double w0;
 	double _WL;
 	vector<double> _WH;
-	const double _SL = 2.0;
+	const double _SL = 1.7;
 	vector<VectorXd> getNewVert(double WL, vector<double> WH);
 	SparseMatrix<double> calculateL();
 	SparseMatrix<double> prepareLaplacian();
