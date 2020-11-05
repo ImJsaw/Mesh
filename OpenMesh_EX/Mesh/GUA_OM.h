@@ -253,7 +253,7 @@ public:
 	void loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, int & face, std::vector<double> & uv);
 	void loadToBufferPatch(std::vector<double> & out_vertices, int & face, std::vector<int> selected, Tri_Mesh & patch);
 	void findNearestPoint(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex);
-	void findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex , mat4 MVP , double dis);
+	void findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex, mat4 MVP, double dis);
 	void delVert(VHandle vhandle);
 	Matrix4d calculateQ(VertexHandle vhandle);
 
@@ -271,17 +271,17 @@ public:
 	Tri_Mesh averageSimplify();
 
 	//-------Edit Flag-------//
-    bool                                       Delete_Flag;
-	
+	bool                                       Delete_Flag;
+
 	int                                        Constrain_num;
-	int                                        Boundary_num ;
-	OMT::VHandle                               start_vh,end_vh;
+	int                                        Boundary_num;
+	OMT::VHandle                               start_vh, end_vh;
 	OMT::VHandle                               ExtremeVh[2];
 	int                                        PatchType;
 
-	std::vector<OMT::VHandle>                  Pluspt      ;
-	std::vector<OMT::VHandle>                  Minuspt     ;
-	std::vector<OMT::VHandle>                  Extrme_Pt   ;
+	std::vector<OMT::VHandle>                  Pluspt;
+	std::vector<OMT::VHandle>                  Minuspt;
+	std::vector<OMT::VHandle>                  Extrme_Pt;
 
 	void getUV(std::vector<double> & patchuv, Tri_Mesh patch, float uvRotateAngle);
 	void Render_Solid();
@@ -330,7 +330,6 @@ private:
 			return mesh->property(*cost, edgeHandle1) < mesh->property(*cost, edgeHandle2);
 		}
 	};
-	std::set<int, CompareCost> pq;
 
 	struct RollbackInfo {
 	public:

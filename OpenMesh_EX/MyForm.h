@@ -276,6 +276,8 @@ namespace OpenMesh_EX {
 	private: System::Windows::Forms::TrackBar^  trackBar1;
 	private: System::Windows::Forms::ToolStripMenuItem^  skeletonExtractionToolStripMenuItem;
 	private: System::Windows::Forms::ToolStripMenuItem^  face2EdgeToolStripMenuItem;
+	private: System::Windows::Forms::Label^  label1;
+	private: System::Windows::Forms::Label^  label2;
 
 	protected:
 
@@ -291,8 +293,8 @@ namespace OpenMesh_EX {
 		/// 這個方法的內容。
 		/// </summary>
 		void InitializeComponent(void) {
-			HKOGLPanel::HKCOGLPanelCameraSetting^  hkcoglPanelCameraSetting2 = (gcnew HKOGLPanel::HKCOGLPanelCameraSetting());
-			HKOGLPanel::HKCOGLPanelPixelFormat^  hkcoglPanelPixelFormat2 = (gcnew HKOGLPanel::HKCOGLPanelPixelFormat());
+			HKOGLPanel::HKCOGLPanelCameraSetting^  hkcoglPanelCameraSetting1 = (gcnew HKOGLPanel::HKCOGLPanelCameraSetting());
+			HKOGLPanel::HKCOGLPanelPixelFormat^  hkcoglPanelPixelFormat1 = (gcnew HKOGLPanel::HKCOGLPanelPixelFormat());
 			this->menuStrip1 = (gcnew System::Windows::Forms::MenuStrip());
 			this->fileToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
 			this->loadModelToolStripMenuItem = (gcnew System::Windows::Forms::ToolStripMenuItem());
@@ -307,6 +309,8 @@ namespace OpenMesh_EX {
 			this->hkoglPanelControl1 = (gcnew HKOGLPanel::HKOGLPanelControl());
 			this->tableLayoutPanel1 = (gcnew System::Windows::Forms::TableLayoutPanel());
 			this->trackBar1 = (gcnew System::Windows::Forms::TrackBar());
+			this->label1 = (gcnew System::Windows::Forms::Label());
+			this->label2 = (gcnew System::Windows::Forms::Label());
 			this->menuStrip1->SuspendLayout();
 			this->tableLayoutPanel1->SuspendLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->trackBar1))->BeginInit();
@@ -377,14 +381,13 @@ namespace OpenMesh_EX {
 			this->skeletonExtractionToolStripMenuItem->Name = L"skeletonExtractionToolStripMenuItem";
 			this->skeletonExtractionToolStripMenuItem->Size = System::Drawing::Size(127, 20);
 			this->skeletonExtractionToolStripMenuItem->Text = L"Skeleton Extraction";
-			this->skeletonExtractionToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::skeletonExtractionToolStripMenuItem_Click);
+			this->skeletonExtractionToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::face2EdgeToolStripMenuItem_Click);
 			// 
 			// face2EdgeToolStripMenuItem
 			// 
 			this->face2EdgeToolStripMenuItem->Name = L"face2EdgeToolStripMenuItem";
 			this->face2EdgeToolStripMenuItem->Size = System::Drawing::Size(82, 20);
 			this->face2EdgeToolStripMenuItem->Text = L"Face2Edge";
-			this->skeletonExtractionToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::face2EdgeToolStripMenuItem_Click);
 			// 
 			// openModelDialog
 			// 
@@ -397,18 +400,18 @@ namespace OpenMesh_EX {
 			// 
 			// hkoglPanelControl1
 			// 
-			hkcoglPanelCameraSetting2->Far = 1000;
-			hkcoglPanelCameraSetting2->Fov = 45;
-			hkcoglPanelCameraSetting2->Near = -1000;
-			hkcoglPanelCameraSetting2->Type = HKOGLPanel::HKCOGLPanelCameraSetting::CAMERATYPE::ORTHOGRAPHIC;
-			this->hkoglPanelControl1->Camera_Setting = hkcoglPanelCameraSetting2;
+			hkcoglPanelCameraSetting1->Far = 1000;
+			hkcoglPanelCameraSetting1->Fov = 45;
+			hkcoglPanelCameraSetting1->Near = -1000;
+			hkcoglPanelCameraSetting1->Type = HKOGLPanel::HKCOGLPanelCameraSetting::CAMERATYPE::ORTHOGRAPHIC;
+			this->hkoglPanelControl1->Camera_Setting = hkcoglPanelCameraSetting1;
 			this->hkoglPanelControl1->Dock = System::Windows::Forms::DockStyle::Fill;
 			this->hkoglPanelControl1->Location = System::Drawing::Point(3, 3);
 			this->hkoglPanelControl1->Name = L"hkoglPanelControl1";
-			hkcoglPanelPixelFormat2->Accumu_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
-			hkcoglPanelPixelFormat2->Alpha_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
-			hkcoglPanelPixelFormat2->Stencil_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
-			this->hkoglPanelControl1->Pixel_Format = hkcoglPanelPixelFormat2;
+			hkcoglPanelPixelFormat1->Accumu_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
+			hkcoglPanelPixelFormat1->Alpha_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
+			hkcoglPanelPixelFormat1->Stencil_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
+			this->hkoglPanelControl1->Pixel_Format = hkcoglPanelPixelFormat1;
 			this->hkoglPanelControl1->Size = System::Drawing::Size(1044, 494);
 			this->hkoglPanelControl1->TabIndex = 2;
 			this->hkoglPanelControl1->Load += gcnew System::EventHandler(this, &MyForm::hkoglPanelControl1_Load);
@@ -444,11 +447,31 @@ namespace OpenMesh_EX {
 			this->trackBar1->MouseDown += gcnew System::Windows::Forms::MouseEventHandler(this, &MyForm::trackBar1_MouseDown);
 			this->trackBar1->MouseUp += gcnew System::Windows::Forms::MouseEventHandler(this, &MyForm::trackBar1_MouseUp);
 			// 
+			// label1
+			// 
+			this->label1->AutoSize = true;
+			this->label1->Location = System::Drawing::Point(496, 25);
+			this->label1->Name = L"label1";
+			this->label1->Size = System::Drawing::Size(33, 12);
+			this->label1->TabIndex = 5;
+			this->label1->Text = L"label1";
+			// 
+			// label2
+			// 
+			this->label2->AutoSize = true;
+			this->label2->Location = System::Drawing::Point(870, 24);
+			this->label2->Name = L"label2";
+			this->label2->Size = System::Drawing::Size(33, 12);
+			this->label2->TabIndex = 6;
+			this->label2->Text = L"label2";
+			// 
 			// MyForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 12);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->ClientSize = System::Drawing::Size(1051, 521);
+			this->Controls->Add(this->label2);
+			this->Controls->Add(this->label1);
 			this->Controls->Add(this->trackBar1);
 			this->Controls->Add(this->tableLayoutPanel1);
 			this->Controls->Add(this->menuStrip1);
@@ -854,6 +877,8 @@ namespace OpenMesh_EX {
 		objptr++;
 
 		trackBar1->Maximum = mesh->n_vertices();
+		trackBar1->Minimum = mesh->n_vertices();
+		label2->Text = trackBar1->Maximum.ToString();
 		hkoglPanelControl1->Invalidate();
 
 		//test
@@ -897,7 +922,8 @@ namespace OpenMesh_EX {
 			auto t0 = high_resolution_clock::now();
 			mesh->simplify(0.75);
 
-			trackBar1->Minimum = mesh->n_vertices();
+			trackBar1->Minimum = trackBar1->Minimum > mesh->n_vertices() ? mesh->n_vertices() : trackBar1->Minimum;
+			label1->Text = trackBar1->Minimum.ToString();
 			trackBar1->Value = mesh->n_vertices();
 			lastValue = trackBar1->Value;
 
@@ -977,6 +1003,6 @@ namespace OpenMesh_EX {
 		else
 			cout << "mesh null" << endl;
 	}
-	};
+};
 
 }

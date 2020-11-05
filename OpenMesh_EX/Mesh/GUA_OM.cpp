@@ -1042,8 +1042,7 @@ void Tri_Mesh::simplify(float rate) {
 	clock_t t1;
 	t1 = clock();
 	cout << (double)(t1) / CLOCKS_PER_SEC << endl;
-	Tri_Mesh newObj(*this);
-	Tri_Mesh* simplified = &newObj;
+	Tri_Mesh* simplified = this;
 	int vertexCount = simplified->n_vertices();
 	int targetVertexCount = vertexCount * rate;
 
@@ -1056,53 +1055,48 @@ void Tri_Mesh::simplify(float rate) {
 	VIter v_it;
 	EIter e_it;
 
-	//CompareCost compare = CompareCost(simplified, &cost);
-	//std::set<int, CompareCost> pq(compare);
+	CompareCost compare = CompareCost(simplified, &cost);
+	std::set<int, CompareCost> pq(compare);
 
-	/*for (e_it = simplified->edges_begin(); e_it != simplified->edges_end(); ++e_it) {
+	for (e_it = simplified->edges_begin(); e_it != simplified->edges_end(); ++e_it) {
 		Update_Edge(e_it.handle());
 		pq.insert(e_it.handle().idx());
-	}*/
+	}
 
 	// collapse the edge with smallest cost
 	// if the connected vertices form a concave polygon, ignore this edge
 	// repeat until the vertex number is lower than the target number
-	int updateEdgeCount = 0;
-	int pqInsertCount = 0;
 	while (vertexCount > targetVertexCount) {
-		//cout << vertexCount << endl;
-		if (simplified->pq.size() == 0) break;
+		if (pq.size() == 0) break;
 
-		auto top = simplified->pq.begin();
+		auto top = pq.begin();
 		EdgeHandle eh = simplified->edge_handle(*top);
 
-		VertexHandle from = simplified->from_vertex_handle(halfedge_handle(eh, 0));
-		VertexHandle remain = simplified->to_vertex_handle(halfedge_handle(eh, 0));
+		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
+		VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));
 		Point np = simplified->property(newPoint, eh);
 
 		// pop the edge with the smallest cost
-		simplified->pq.erase(*top);
+		pq.erase(*top);
 
 		if (!from.is_valid() || !remain.is_valid() || !eh.is_valid()) {
 			continue;
 		}
-		
-		
-		if (simplified->is_collapse_ok(halfedge_handle(eh, 0)) && simplified->DetermineConcaveByTwoPoints(&from, &remain, &np)) {
-			RollbackInfo* info1 = new RollbackInfo(from.idx(), simplified);
-			RollbackInfo* info2 = new RollbackInfo(remain.idx(), simplified);
+
+		if (is_collapse_ok(halfedge_handle(eh, 0)) && DetermineConcaveByTwoPoints(&from, &remain, &np)) {
+			Point np = simplified->property(newPoint, eh);
+			RollbackInfo* info1 = new RollbackInfo(from.idx(), this);
+			RollbackInfo* info2 = new RollbackInfo(remain.idx(), this);
 
 			// remove connected edges in pq
 			VertexEdgeIter ve_it = simplified->ve_iter(from);
 			for (; ve_it.is_valid(); ++ve_it) {
-				simplified->pq.erase(ve_it.handle().idx());
+				pq.erase(ve_it.handle().idx());
 			}
 
 			ve_it = simplified->ve_iter(remain);
-			//vector<VertexEdgeIter> remainEdge;
 			for (; ve_it.is_valid(); ++ve_it) {
-				simplified->pq.erase(ve_it.handle().idx());
-				//remainEdge.push_back(ve_it);
+				pq.erase(ve_it.handle().idx());
 			}
 
 			// collapse
@@ -1119,23 +1113,15 @@ void Tri_Mesh::simplify(float rate) {
 			// update the cost of connected edges and push them back to the pq
 			ve_it = simplified->ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
-				updateEdgeCount++;
-				simplified->Update_Edge(ve_it.handle());
-				//if (std::find(remainEdge.begin(), remainEdge.end(), ve_it) == remainEdge.end())
-				//{
-					pqInsertCount++;
-					simplified->pq.insert(ve_it.handle().idx());
-				//}
+				Update_Edge(ve_it.handle());
+				pq.insert(ve_it.handle().idx());
 			}
+
 			vertexCount--;
 			_deque.toDecimate();
 		}
-
 	}
-	t1 = clock();
-	cout << (double)(t1) / CLOCKS_PER_SEC << endl;
-	cout << "updateEdgeCount: " << updateEdgeCount << endl;
-	cout << "pqInsertCount: " << pqInsertCount << endl;
+
 	cout << "FINISH" << endl;
 	simplified->garbage_collection();
 	return;
@@ -1524,16 +1510,6 @@ void Tri_Mesh::Initialize() {
 		Matrix4d q = calculateQ(v_it.handle());
 		this->property(QMat, *v_it) = q;
 	}
-
-	CompareCost compare = CompareCost(this, &cost);
-	std::set<int, CompareCost> newPQ(compare);
-	EIter e_it;
-	for (e_it = this->edges_begin(); e_it != this->edges_end(); ++e_it) {
-		Update_Edge(e_it.handle());
-		newPQ.insert(e_it.handle().idx());
-	}
-	pq = newPQ;
-	cout << "Initialize finish" << endl;
 }
 
 void Tri_Mesh::face2Edge() {
