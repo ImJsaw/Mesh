@@ -1042,12 +1042,11 @@ void Tri_Mesh::simplify(float rate) {
 	clock_t t1;
 	t1 = clock();
 	cout << (double)(t1) / CLOCKS_PER_SEC << endl;
-	Tri_Mesh* simplified = this;
-	int vertexCount = simplified->n_vertices();
+	int vertexCount = this->n_vertices();
 	int targetVertexCount = vertexCount * rate;
 
-	while (vertexCount > targetVertexCount && simplified->_deque.canDecimate()) {
-		simplified->Decimate(1);
+	while (vertexCount > targetVertexCount && this->_deque.canDecimate()) {
+		this->Decimate(1);
 		vertexCount--;
 	}
 	if (vertexCount <= targetVertexCount) return;
@@ -1055,10 +1054,10 @@ void Tri_Mesh::simplify(float rate) {
 	VIter v_it;
 	EIter e_it;
 
-	CompareCost compare = CompareCost(simplified, &cost);
+	CompareCost compare = CompareCost(this, &cost);
 	std::set<int, CompareCost> pq(compare);
 
-	for (e_it = simplified->edges_begin(); e_it != simplified->edges_end(); ++e_it) {
+	for (e_it = this->edges_begin(); e_it != this->edges_end(); ++e_it) {
 		Update_Edge(e_it.handle());
 		pq.insert(e_it.handle().idx());
 	}
@@ -1070,11 +1069,11 @@ void Tri_Mesh::simplify(float rate) {
 		if (pq.size() == 0) break;
 
 		auto top = pq.begin();
-		EdgeHandle eh = simplified->edge_handle(*top);
+		EdgeHandle eh = this->edge_handle(*top);
 
 		VertexHandle from = from_vertex_handle(halfedge_handle(eh, 0));
 		VertexHandle remain = to_vertex_handle(halfedge_handle(eh, 0));
-		Point np = simplified->property(newPoint, eh);
+		Point np = this->property(newPoint, eh);
 
 		// pop the edge with the smallest cost
 		pq.erase(*top);
@@ -1084,26 +1083,26 @@ void Tri_Mesh::simplify(float rate) {
 		}
 
 		if (is_collapse_ok(halfedge_handle(eh, 0)) && DetermineConcaveByTwoPoints(&from, &remain, &np)) {
-			Point np = simplified->property(newPoint, eh);
+			Point np = this->property(newPoint, eh);
 			RollbackInfo* info1 = new RollbackInfo(from.idx(), this);
 			RollbackInfo* info2 = new RollbackInfo(remain.idx(), this);
 
 			// remove connected edges in pq
-			VertexEdgeIter ve_it = simplified->ve_iter(from);
+			VertexEdgeIter ve_it = this->ve_iter(from);
 			for (; ve_it.is_valid(); ++ve_it) {
 				pq.erase(ve_it.handle().idx());
 			}
 
-			ve_it = simplified->ve_iter(remain);
+			ve_it = this->ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
 				pq.erase(ve_it.handle().idx());
 			}
 
 			// collapse
-			simplified->collapse(halfedge_handle(eh, 0));
+			this->collapse(halfedge_handle(eh, 0));
 
 			// new point position
-			point(remain) = simplified->property(newPoint, eh);
+			point(remain) = this->property(newPoint, eh);
 			from.invalidate();
 
 			// add new log to the deque
@@ -1111,7 +1110,7 @@ void Tri_Mesh::simplify(float rate) {
 			_deque.pushNewLog(log);
 
 			// update the cost of connected edges and push them back to the pq
-			ve_it = simplified->ve_iter(remain);
+			ve_it = this->ve_iter(remain);
 			for (; ve_it.is_valid(); ++ve_it) {
 				Update_Edge(ve_it.handle());
 				pq.insert(ve_it.handle().idx());
@@ -1123,7 +1122,7 @@ void Tri_Mesh::simplify(float rate) {
 	}
 
 	cout << "FINISH" << endl;
-	simplified->garbage_collection();
+	this->garbage_collection();
 	return;
 }
 
