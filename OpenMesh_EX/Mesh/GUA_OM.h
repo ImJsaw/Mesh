@@ -266,7 +266,7 @@ public:
 	float getCot(const HHandle e);
 	double getArea(const FHandle f);
 	void getSkeleton();
-	void face2Edge();
+	void face2Edge(int faces);
 
 	Tri_Mesh averageSimplify();
 

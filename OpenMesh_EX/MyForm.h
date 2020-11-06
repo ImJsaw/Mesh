@@ -381,13 +381,15 @@ namespace OpenMesh_EX {
 			this->skeletonExtractionToolStripMenuItem->Name = L"skeletonExtractionToolStripMenuItem";
 			this->skeletonExtractionToolStripMenuItem->Size = System::Drawing::Size(127, 20);
 			this->skeletonExtractionToolStripMenuItem->Text = L"Skeleton Extraction";
-			this->skeletonExtractionToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::face2EdgeToolStripMenuItem_Click);
+			this->skeletonExtractionToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::skeletonExtractionToolStripMenuItem_Click);
 			// 
 			// face2EdgeToolStripMenuItem
 			// 
 			this->face2EdgeToolStripMenuItem->Name = L"face2EdgeToolStripMenuItem";
 			this->face2EdgeToolStripMenuItem->Size = System::Drawing::Size(82, 20);
 			this->face2EdgeToolStripMenuItem->Text = L"Face2Edge";
+			this->face2EdgeToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::face2EdgeToolStripMenuItem_Click);
+			this->face2EdgeToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::face2EdgeToolStripMenuItem_Click);
 			// 
 			// openModelDialog
 			// 
@@ -985,20 +987,16 @@ namespace OpenMesh_EX {
 
 	private: System::Void face2EdgeToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (mesh != NULL) {
-			mesh->getSkeleton();
+			mesh->face2Edge(mesh->n_faces());
+			//update canvas
 			for (int i = 0; i < OBJ_NUM; i++) {
 				vertices[i].clear();
 				face[i] = 0;
 				meshUV[i].clear();
 			}
 			mesh->loadToBuffer(*mesh, vertices[0], face[0], meshUV[0]);
-			std::cout << "vertices.size()" << vertices[0].size() << endl;
 			std::cout << "face" << face[0] << std::endl;
-
 			hkoglPanelControl1->Invalidate();
-
-			//face 2 edge
-
 		}
 		else
 			cout << "mesh null" << endl;

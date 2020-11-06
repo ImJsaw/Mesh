@@ -1511,8 +1511,31 @@ void Tri_Mesh::Initialize() {
 	}
 }
 
-void Tri_Mesh::face2Edge() {
-	//TODO
+bool cmp(pair<int, double> &a, pair<int, double> &b) { return a.second < b.second; }
+
+void Tri_Mesh::face2Edge(int faces) {
+	//single time collapse amount
+	double collapseForce = 0.5;
+	HIter h_it;
+	std::vector<pair<int, double>> costMap;
+
+	for (h_it = halfedges_begin(); h_it != halfedges_end(); ++h_it) {
+		costMap.push_back(make_pair(h_it.handle().idx(), calc_edge_length(h_it)));
+	}
+	std::sort(costMap.begin(), costMap.end(), cmp);
+	int c = 0;
+	for (auto it = costMap.begin(); it != costMap.end(); ++it) {
+		if (c > faces*collapseForce) break;
+		HHandle toCollapse = HalfedgeHandle(it->first);
+		//collapse
+		if (is_collapse_ok(toCollapse)) {
+			//cout << "id : " << it->first << ", cost : " << it->second << endl;
+			collapse(toCollapse);
+		}
+		c++;
+	}
+
+	garbage_collection();
 	return;
 }
 
@@ -1579,7 +1602,7 @@ void Tri_Mesh::getSkeleton() {
 			//cout << "update point " << index << "to " << p << endl;
 		}
 
-		
+
 		//cout << "update." << endl;
 		//update WH, WL
 		_WH.resize(vertices);
