@@ -1514,8 +1514,9 @@ void Tri_Mesh::Initialize() {
 bool cmp(pair<int, double> &a, pair<int, double> &b) { return a.second < b.second; }
 
 void Tri_Mesh::face2Edge(int faces) {
+	
 	//single time collapse amount
-	double collapseForce = 0.5;
+	double collapseForce = 0.05;
 	HIter h_it;
 	std::vector<pair<int, double>> costMap;
 
@@ -1527,17 +1528,30 @@ void Tri_Mesh::face2Edge(int faces) {
 	for (auto it = costMap.begin(); it != costMap.end(); ++it) {
 		if (c > faces*collapseForce) break;
 		HHandle toCollapse = HalfedgeHandle(it->first);
+		VertexHandle from = from_vertex_handle(toCollapse);
+		VertexHandle to = to_vertex_handle(toCollapse);
+		Point recover = point(to);
+		Point middle = (point(from) + point(to)) / 2;
+		point(to) = middle;
 		//collapse
 		if (is_collapse_ok(toCollapse)) {
 			//cout << "id : " << it->first << ", cost : " << it->second << endl;
 			collapse(toCollapse);
-			toCollapse.invalidate();
+			from.invalidate();
+				
+			//toCollapse.invalidate();
+			c++;
 		}
-		c++;
+		else
+		{
+			point(to) = recover;
+		}
 	}
 
 	garbage_collection();
 	return;
+	
+	
 }
 
 void Tri_Mesh::getSkeleton() {

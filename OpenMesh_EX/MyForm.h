@@ -326,7 +326,7 @@ namespace OpenMesh_EX {
 			});
 			this->menuStrip1->Location = System::Drawing::Point(0, 0);
 			this->menuStrip1->Name = L"menuStrip1";
-			this->menuStrip1->Size = System::Drawing::Size(1051, 24);
+			this->menuStrip1->Size = System::Drawing::Size(1056, 24);
 			this->menuStrip1->TabIndex = 1;
 			this->menuStrip1->Text = L"menuStrip1";
 			this->menuStrip1->ItemClicked += gcnew System::Windows::Forms::ToolStripItemClickedEventHandler(this, &MyForm::menuStrip1_ItemClicked);
@@ -389,7 +389,6 @@ namespace OpenMesh_EX {
 			this->face2EdgeToolStripMenuItem->Size = System::Drawing::Size(82, 20);
 			this->face2EdgeToolStripMenuItem->Text = L"Face2Edge";
 			this->face2EdgeToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::face2EdgeToolStripMenuItem_Click);
-			this->face2EdgeToolStripMenuItem->Click += gcnew System::EventHandler(this, &MyForm::face2EdgeToolStripMenuItem_Click);
 			// 
 			// openModelDialog
 			// 
@@ -414,7 +413,7 @@ namespace OpenMesh_EX {
 			hkcoglPanelPixelFormat1->Alpha_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
 			hkcoglPanelPixelFormat1->Stencil_Buffer_Bits = HKOGLPanel::HKCOGLPanelPixelFormat::PIXELBITS::BITS_0;
 			this->hkoglPanelControl1->Pixel_Format = hkcoglPanelPixelFormat1;
-			this->hkoglPanelControl1->Size = System::Drawing::Size(1044, 494);
+			this->hkoglPanelControl1->Size = System::Drawing::Size(1050, 866);
 			this->hkoglPanelControl1->TabIndex = 2;
 			this->hkoglPanelControl1->Load += gcnew System::EventHandler(this, &MyForm::hkoglPanelControl1_Load);
 			this->hkoglPanelControl1->Paint += gcnew System::Windows::Forms::PaintEventHandler(this, &MyForm::hkoglPanelControl1_Paint);
@@ -436,7 +435,7 @@ namespace OpenMesh_EX {
 			this->tableLayoutPanel1->RowCount = 1;
 			this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 50)));
 			this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 50)));
-			this->tableLayoutPanel1->Size = System::Drawing::Size(1050, 500);
+			this->tableLayoutPanel1->Size = System::Drawing::Size(1056, 872);
 			this->tableLayoutPanel1->TabIndex = 3;
 			this->tableLayoutPanel1->Paint += gcnew System::Windows::Forms::PaintEventHandler(this, &MyForm::tableLayoutPanel1_Paint);
 			// 
@@ -471,7 +470,7 @@ namespace OpenMesh_EX {
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 12);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-			this->ClientSize = System::Drawing::Size(1051, 521);
+			this->ClientSize = System::Drawing::Size(1056, 894);
 			this->Controls->Add(this->label2);
 			this->Controls->Add(this->label1);
 			this->Controls->Add(this->trackBar1);
@@ -837,9 +836,9 @@ namespace OpenMesh_EX {
 
 			 //mouseWheel
 	private: System::Void hkoglPanelControl1_MouseWheel(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
-		if (e->Delta < 0) eyedistance += 0.2;
+		if (e->Delta < 0) eyedistance += 0.05;
 		else {
-			eyedistance -= 0.2;
+			eyedistance -= 0.05;
 			//if (eyedistance < 0.4) eyedistance = 0.4;
 			//std::cout << "wheel up, distance : "  << eyedistance << std::endl;
 		}
