@@ -1531,6 +1531,7 @@ void Tri_Mesh::face2Edge(int faces) {
 		if (is_collapse_ok(toCollapse)) {
 			//cout << "id : " << it->first << ", cost : " << it->second << endl;
 			collapse(toCollapse);
+			toCollapse.invalidate();
 		}
 		c++;
 	}
@@ -1541,7 +1542,7 @@ void Tri_Mesh::face2Edge(int faces) {
 
 void Tri_Mesh::getSkeleton() {
 	cout << "get skeleton" << endl;
-	const int smoothTime = 20;
+	const int smoothTime = 8;
 	//model avg area
 	double avgArea;
 	//get avg face area
@@ -1568,7 +1569,7 @@ void Tri_Mesh::getSkeleton() {
 	for (int i = 0; i < _WH.size(); i++)
 		_WH[i] = w0;
 	//WL init
-	_WL = 1 * sqrt(avgArea);
+	_WL = 10;
 
 	cout << "avg area:" << avgArea << "from " << faceCount << "face, area total" << areaSum << endl;
 
@@ -1582,10 +1583,10 @@ void Tri_Mesh::getSkeleton() {
 			areaSum += area;
 		}
 		cout << "area ratio : " << areaSum / avgArea / faceCount << endl;
-		if (areaSum / avgArea / faceCount < 0.5) {
+		/*if (areaSum / avgArea / faceCount < 0.1) {
 			cout << "ratio :" << areaSum / avgArea / faceCount << ", stop" << endl;
 			break;
-		}
+		}*/
 
 		vector<VectorXd> newV = getNewVert(_WL, _WH);
 		cout << "updating vert.." << endl;

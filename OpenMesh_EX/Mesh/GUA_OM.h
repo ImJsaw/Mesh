@@ -413,7 +413,7 @@ private:
 	double w0;
 	double _WL;
 	vector<double> _WH;
-	const double _SL = 1.7;
+	const double _SL = 1.5;
 	vector<VectorXd> getNewVert(double WL, vector<double> WH);
 	SparseMatrix<double> calculateL();
 	SparseMatrix<double> prepareLaplacian();
