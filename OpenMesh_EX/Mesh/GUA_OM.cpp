@@ -1530,13 +1530,67 @@ void Tri_Mesh::face2Edge(int faces) {
 		HHandle toCollapse = HalfedgeHandle(it->first);
 		VertexHandle from = from_vertex_handle(toCollapse);
 		VertexHandle to = to_vertex_handle(toCollapse);
-		Point recover = point(to);
-		Point middle = (point(from) + point(to)) / 2;
-		point(to) = middle;
-		//collapse
+		double fromAvg = 0;
+		int fromCon = 0;
+		double toAvg = 0;
+		int toCon = 0;
+		for (VEIter ve_it = ve_iter(from); ve_it; ++ve_it) {
+			fromAvg += calc_edge_length(ve_it.handle());
+			fromCon++;
+		}
+		for (VEIter ve_it = ve_iter(to); ve_it; ++ve_it) {
+			toAvg += calc_edge_length(ve_it.handle());
+			toCon++;
+		}
+		fromAvg /= fromCon;
+		toAvg /= toCon;
+
+		if (fromAvg > toAvg) {
+			toCollapse = opposite_halfedge_handle(toCollapse);
+		}
+
 		if (is_collapse_ok(toCollapse)) {
 			//cout << "id : " << it->first << ", cost : " << it->second << endl;
 			collapse(toCollapse);
+
+			VertexHandle from = from_vertex_handle(toCollapse);
+			from.invalidate();
+
+			//toCollapse.invalidate();
+			c++;
+		}
+
+		//Point recover = point(to);
+		//Point middle = (point(from) + point(to)) / 2;
+		//point(to) = middle;
+		//collapse
+
+
+		/*
+		const double threshould = 1.5;
+		//      v1
+		//    //||\\
+		//   v2 || v3    
+		//    \\||//
+		//      v0
+		//collapse vo->v1
+
+		double len12 = calc_edge_length(next_halfedge_handle(toCollapse));
+		double len20 = calc_edge_length(next_halfedge_handle(next_halfedge_handle(toCollapse)));
+		double len30 = calc_edge_length(next_halfedge_handle(opposite_halfedge_handle(toCollapse)));
+		double len13 = calc_edge_length(next_halfedge_handle(next_halfedge_handle(opposite_halfedge_handle(toCollapse))));
+
+		bool leftTri = len20 > len12 && len20 > it->second;
+		bool rightTri = len30 > len13 && len30 > it->second;
+		bool leftTri = len20 > len12 && len12 > it->second;
+		bool rightTri = len30 > len13 && len13 > it->second;
+
+
+		if (is_collapse_ok(toCollapse) && leftTri && rightTri) {
+			//cout << "id : " << it->first << ", cost : " << it->second << endl;
+			collapse(toCollapse);
+
+			VertexHandle from = from_vertex_handle(toCollapse);
 			from.invalidate();
 				
 			//toCollapse.invalidate();
@@ -1544,8 +1598,9 @@ void Tri_Mesh::face2Edge(int faces) {
 		}
 		else
 		{
-			point(to) = recover;
+			//point(to) = recover;
 		}
+		*/
 	}
 
 	garbage_collection();

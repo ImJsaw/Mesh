@@ -679,13 +679,13 @@ namespace OpenMesh_EX {
 				//line
 				if (line) {
 					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-					glm::vec3 color = glm::vec3(0.0, 0.0, 0.0);
+					glm::vec3 color = glm::vec3(1.0, 1.0, 1.0);
 					glUniform3fv(ColorID, 1, &color[0]);
 					glDrawArrays(GL_TRIANGLES, 0, face[i] * 3);
 				}
 				//face
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-				glm::vec3 color = glm::vec3(1.0, 0.85, 0.5);
+				glm::vec3 color = glm::vec3(0.0, 0.85, 0.5);
 				glUniform3fv(ColorID, 1, &color[0]);
 				glDrawArrays(GL_TRIANGLES, 0, face[i] * 3);
 
@@ -986,7 +986,9 @@ namespace OpenMesh_EX {
 
 	private: System::Void face2EdgeToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (mesh != NULL) {
-			mesh->face2Edge(mesh->n_faces());
+			for (int i = 0; i < 10; i++) {
+				mesh->face2Edge(mesh->n_faces());
+			}
 			//update canvas
 			for (int i = 0; i < OBJ_NUM; i++) {
 				vertices[i].clear();
