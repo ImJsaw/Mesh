@@ -921,7 +921,7 @@ namespace OpenMesh_EX {
 	private: System::Void errorQuadricToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (mesh != NULL) {
 			auto t0 = high_resolution_clock::now();
-			mesh->simplify(0.75);
+			mesh->simplify(0.018);
 
 			trackBar1->Minimum = trackBar1->Minimum > mesh->n_vertices() ? mesh->n_vertices() : trackBar1->Minimum;
 			label1->Text = trackBar1->Minimum.ToString();
