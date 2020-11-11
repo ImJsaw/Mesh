@@ -1487,6 +1487,7 @@ void Tri_Mesh::Recover(int k) {
 		// Delete the original remain vertex before we add the face back,
 		// or we will get some errors
 		delete_vertex(v_it);
+		omerr().disable();
 		for (auto face : allFaces) {
 			add_face(face);
 		}
