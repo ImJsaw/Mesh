@@ -986,9 +986,8 @@ namespace OpenMesh_EX {
 
 	private: System::Void face2EdgeToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
 		if (mesh != NULL) {
-			for (int i = 0; i < 10; i++) {
-				mesh->face2Edge(mesh->n_faces());
-			}
+			int oriFace = mesh->n_faces();
+			mesh->face2Edge(mesh->n_faces() * 0.8);
 			//update canvas
 			for (int i = 0; i < OBJ_NUM; i++) {
 				vertices[i].clear();

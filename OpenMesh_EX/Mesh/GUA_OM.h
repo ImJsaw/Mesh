@@ -257,6 +257,7 @@ public:
 	void delVert(VHandle vhandle);
 	Matrix4d calculateQ(VertexHandle vhandle);
 
+
 	void oneRingCollapse(VHandle vhandle);
 	bool DetermineConcaveByTwoPoints(VertexHandle *p1, VertexHandle *p2, Point *np);
 	void normalizeModel();
@@ -267,7 +268,9 @@ public:
 	double getArea(const FHandle f);
 	void getSkeleton();
 	void face2Edge(int faces);
-
+	Matrix4d calculateFQ(VertexHandle vhandle);
+	double qemCost(const HHandle hhandle);
+	double getFa(const VHandle f, const VHandle vert);
 	Tri_Mesh averageSimplify();
 
 	//-------Edit Flag-------//
@@ -303,6 +306,8 @@ public:
 
 private:
 	OpenMesh::EPropHandleT<double> cost;
+	OpenMesh::HPropHandleT<double> QEMcost;
+	OpenMesh::VPropHandleT<Matrix4d> FMat;
 	OpenMesh::VPropHandleT<Matrix4d> QMat;
 	OpenMesh::EPropHandleT<Point> newPoint;
 	
@@ -328,6 +333,29 @@ private:
 			auto edgeHandle1 = mesh->edge_handle(p1);
 			auto edgeHandle2 = mesh->edge_handle(p2);
 			return mesh->property(*cost, edgeHandle1) < mesh->property(*cost, edgeHandle2);
+		}
+	};
+
+	struct CompareSkeCost {
+		Tri_Mesh* mesh;
+		OpenMesh::HPropHandleT<double>* cost;
+		CompareSkeCost() {
+
+
+		}
+
+		CompareSkeCost(Tri_Mesh* _mesh, OpenMesh::HPropHandleT<double>* _cost) {
+			mesh = _mesh;
+			cost = _cost;
+		}
+		bool operator()() const {
+			return false;
+		}
+
+		bool operator()(const int p1, const int p2) const {
+			auto hEdgeHandle1 = mesh->halfedge_handle(p1);
+			auto hEdgeHandle2 = mesh->halfedge_handle(p2);
+			return mesh->property(*cost, hEdgeHandle1) < mesh->property(*cost, hEdgeHandle2);
 		}
 	};
 

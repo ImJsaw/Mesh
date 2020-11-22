@@ -1170,6 +1170,49 @@ Matrix4d Tri_Mesh::calculateQ(VertexHandle vhandle) {
 	return q;
 }
 
+Matrix4d Tri_Mesh::calculateFQ(VertexHandle vhandle) {
+	VVIter vv_it;
+	Matrix4d q = Matrix4d();
+	//init matrix
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			q(i, j) = 0.0;
+		}
+	}
+	
+	Point vi = point(vhandle);
+
+	for (VVIter vv_it = vv_iter(vhandle); vv_it.is_valid(); ++vv_it) {
+		Point vj = point(vv_it);
+		// a = normalized edge vector of edge ij, b = a * vi
+		Point a = (vj - vi).normalized();
+		Point b = a % vi;
+		MatrixXd kij = MatrixXd(3, 4);
+		//init matrix
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 4; j++) {
+				kij(i, j) = 0.0;
+			}
+		}
+
+		kij(0, 1) -= a[2];
+		kij(0, 2) += a[1];
+		kij(0, 3) -= b[0];
+
+		kij(1, 0) += a[2];
+		kij(1, 2) -= a[0];
+		kij(1, 3) -= b[1];
+
+		kij(2, 0) -= a[1];
+		kij(2, 1) += a[0];
+		kij(2, 3) -= b[2];
+		Matrix4d tmpQ= kij.transpose() * kij;
+		q += tmpQ;
+	}
+
+	return q;
+}
+
 
 Tri_Mesh Tri_Mesh::averageSimplify() {
 	Tri_Mesh simplified = Tri_Mesh(*this);
@@ -1500,119 +1543,167 @@ void Tri_Mesh::Recover(int k) {
 
 void Tri_Mesh::Initialize() {
 	this->normalizeModel();
-
+	this->add_property(QEMcost);
 	this->add_property(cost);
 	this->add_property(QMat);
+	this->add_property(FMat);
 	this->add_property(newPoint);
 
 	// calculate the Q matrix for all vertices
 	for (VIter v_it = this->vertices_begin(); v_it != this->vertices_end(); ++v_it) {
 		Matrix4d q = calculateQ(v_it.handle());
 		this->property(QMat, *v_it) = q;
+		this->property(FMat, *v_it) = calculateFQ(v_it.handle());
+	}
+	//calc all QEMCost  at init
+
+	cout << "calc QEM" << endl;
+	for (HIter h_it = halfedges_begin(); h_it != halfedges_end(); ++h_it) {
+		this->property(QEMcost, *h_it) = qemCost(h_it.handle());
 	}
 }
 
 bool cmp(pair<int, double> &a, pair<int, double> &b) { return a.second < b.second; }
 
+double Tri_Mesh::qemCost(const HHandle hhandle) {
+	VertexHandle from = from_vertex_handle(hhandle);
+	VertexHandle to = to_vertex_handle(hhandle);
+	double wa = 3;
+	double wb = 0.1;
+	//fij + fjj
+	double fa = getFa(from,to) + getFa(to,to);
+	double fb;
+	double oneRingLenSigma=0;
+
+	for (VEIter ve_it = ve_iter(from); ve_it.is_valid(); ++ve_it) {
+		oneRingLenSigma += calc_edge_length(ve_it.handle());
+	}
+	fb = calc_edge_length(hhandle) * oneRingLenSigma;
+	return (wa * fa + wb * fb);
+}
+
+double Tri_Mesh::getFa(const VHandle f,const VHandle vHandle) {
+	//pt * Q * p
+	Point v = point(vHandle);
+	Vector4d P = Vector4d(v[0], v[1], v[2], 1);
+	Matrix4d newQ = this->property(FMat, f);
+	double VtQ[4];
+	double Fa = 0;
+	for (int i = 0; i < 4; i++) {
+		VtQ[i] = P(0) * newQ(0, i) + P(1) * newQ(1, i) + P(2) * newQ(2, i) + P(3) * newQ(3, i);
+	}
+
+	for (int i = 0; i < 4; i++) {
+		Fa += VtQ[i] * P(i);
+	}
+	return Fa;
+}
+
 void Tri_Mesh::face2Edge(int faces) {
 	
 	//single time collapse amount
-	double collapseForce = 0.05;
+	double collapseForce = 1;
 	HIter h_it;
 	std::vector<pair<int, double>> costMap;
+	
+	std::vector<int> droped = vector<int>();
 
-	for (h_it = halfedges_begin(); h_it != halfedges_end(); ++h_it) {
-		costMap.push_back(make_pair(h_it.handle().idx(), calc_edge_length(h_it)));
+	CompareSkeCost compare = CompareSkeCost(this, &QEMcost);
+	std::set<int, CompareSkeCost> pq(compare);
+	//log all QEM cost precalc
+	for (HIter h_it = halfedges_begin(); h_it != halfedges_end(); ++h_it) {
+		pq.insert(h_it.handle().idx());
 	}
-	std::sort(costMap.begin(), costMap.end(), cmp);
-	int c = 0;
-	for (auto it = costMap.begin(); it != costMap.end(); ++it) {
-		if (c > faces*collapseForce) break;
-		HHandle toCollapse = HalfedgeHandle(it->first);
-		VertexHandle from = from_vertex_handle(toCollapse);
-		VertexHandle to = to_vertex_handle(toCollapse);
-		double fromAvg = 0;
-		int fromCon = 0;
-		double toAvg = 0;
-		int toCon = 0;
-		for (VEIter ve_it = ve_iter(from); ve_it; ++ve_it) {
-			fromAvg += calc_edge_length(ve_it.handle());
-			fromCon++;
-		}
-		for (VEIter ve_it = ve_iter(to); ve_it; ++ve_it) {
-			toAvg += calc_edge_length(ve_it.handle());
-			toCon++;
-		}
-		fromAvg /= fromCon;
-		toAvg /= toCon;
+	int curFace = this->n_faces();
+	while (curFace > faces) {
 
-		if (fromAvg > toAvg) {
-			toCollapse = opposite_halfedge_handle(toCollapse);
+		//cout << "remove." << endl;
+		if (pq.size() == 0) break;
+		auto top = pq.begin();
+		HHandle hh = this->halfedge_handle(*top);
+
+		VertexHandle from = from_vertex_handle(hh);
+		VertexHandle to = to_vertex_handle(hh);
+		// pop the edge with the smallest cost
+		pq.erase(pq.begin());
+		if (!from.is_valid() || !to.is_valid() || !hh.is_valid()) {
+			cout << "invalid!" << endl;
+			continue;
 		}
 
-		if (is_collapse_ok(toCollapse)) {
-			//cout << "id : " << it->first << ", cost : " << it->second << endl;
-			collapse(toCollapse);
+		if (is_collapse_ok(hh)) {
+			VVIter vv_it;
 
-			VertexHandle from = from_vertex_handle(toCollapse);
+			//cout << "collapse" << endl;
+			vector<int> toUpdate = vector<int>();
+			// log one ring vert, need to update cost
+			for (vv_it = vv_iter(from); vv_it.is_valid(); ++vv_it) {
+				toUpdate.push_back(vv_it.handle().idx());
+			}
+			toUpdate.push_back(to.idx());
+			//update Q
+			this->property(FMat, to) = this->property(FMat, from) + this->property(FMat, to);
+
+			//cout << "collapsed" << endl;
+			// collapse
+			this->collapse(hh);
 			from.invalidate();
 
-			//toCollapse.invalidate();
-			c++;
+
+			for (VOHIter voh_it = voh_iter(to); voh_it; ++voh_it) {
+				auto index = pq.find(voh_it.handle().idx());
+				if(index != pq.end())
+					pq.erase(index);
+				//pq.erase(pq.find(voh_it.handle().idx()));
+			}
+			// update the cost of connected edges and push them back to the pq
+			//cout << "update one ring & collapse point cost" << endl;
+			for (int i = 0; i < toUpdate.size(); i++) {
+				int idx = toUpdate[i];
+				for (VOHIter voh_it = voh_iter(vertex_handle(idx)); voh_it; ++voh_it) {
+					auto index = pq.find(voh_it.handle().idx());
+					if (index != pq.end())
+						pq.erase(index);
+					//pq.erase(pq.find(voh_it.handle().idx()));
+				}
+			}
+
+
+			for (VOHIter voh_it = voh_iter(to); voh_it; ++voh_it) {
+				//cout << "cur half edge" << voh_it.handle().idx() << endl;
+				this->property(QEMcost, *voh_it) = qemCost(voh_it.handle());
+				//cout << "re insert" << endl;
+				//re insert to update sort
+				pq.insert(voh_it.handle().idx());
+			}
+			// update the cost of connected edges and push them back to the pq
+			//cout << "update one ring & collapse point cost" << endl;
+			for (int i = 0; i < toUpdate.size(); i++) {
+				int idx = toUpdate[i];
+				//recalc one ring matrix
+				this->property(FMat, vertex_handle(idx)) = calculateFQ(vertex_handle(idx));
+				//cout << "cur vert" << idx << endl;
+				for (VOHIter voh_it = voh_iter(vertex_handle(idx)); voh_it; ++voh_it) {
+					//cout << "cur half edge" << voh_it.handle().idx() << endl;
+					this->property(QEMcost, *voh_it) = qemCost(voh_it.handle());
+					//cout << "re insert" << endl;
+					//re insert to update sort
+					pq.insert(voh_it.handle().idx());
+				}
+			}
+			curFace--;
 		}
 
-		//Point recover = point(to);
-		//Point middle = (point(from) + point(to)) / 2;
-		//point(to) = middle;
-		//collapse
-
-
-		/*
-		const double threshould = 1.5;
-		//      v1
-		//    //||\\
-		//   v2 || v3    
-		//    \\||//
-		//      v0
-		//collapse vo->v1
-
-		double len12 = calc_edge_length(next_halfedge_handle(toCollapse));
-		double len20 = calc_edge_length(next_halfedge_handle(next_halfedge_handle(toCollapse)));
-		double len30 = calc_edge_length(next_halfedge_handle(opposite_halfedge_handle(toCollapse)));
-		double len13 = calc_edge_length(next_halfedge_handle(next_halfedge_handle(opposite_halfedge_handle(toCollapse))));
-
-		bool leftTri = len20 > len12 && len20 > it->second;
-		bool rightTri = len30 > len13 && len30 > it->second;
-		bool leftTri = len20 > len12 && len12 > it->second;
-		bool rightTri = len30 > len13 && len13 > it->second;
-
-
-		if (is_collapse_ok(toCollapse) && leftTri && rightTri) {
-			//cout << "id : " << it->first << ", cost : " << it->second << endl;
-			collapse(toCollapse);
-
-			VertexHandle from = from_vertex_handle(toCollapse);
-			from.invalidate();
-				
-			//toCollapse.invalidate();
-			c++;
-		}
-		else
-		{
-			//point(to) = recover;
-		}
-		*/
 	}
 
-	garbage_collection();
+	cout << "FINISH" << endl;
+	this->garbage_collection();
 	return;
-	
-	
 }
 
 void Tri_Mesh::getSkeleton() {
 	cout << "get skeleton" << endl;
-	const int smoothTime = 8;
+	const int smoothTime = 7;
 	//model avg area
 	double avgArea;
 	//get avg face area
@@ -1653,10 +1744,10 @@ void Tri_Mesh::getSkeleton() {
 			areaSum += area;
 		}
 		cout << "area ratio : " << areaSum / avgArea / faceCount << endl;
-		/*if (areaSum / avgArea / faceCount < 0.1) {
+		if (areaSum / avgArea / faceCount < 0.1) {
 			cout << "ratio :" << areaSum / avgArea / faceCount << ", stop" << endl;
 			break;
-		}*/
+		}
 
 		vector<VectorXd> newV = getNewVert(_WL, _WH);
 		cout << "updating vert.." << endl;
