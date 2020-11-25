@@ -1568,8 +1568,8 @@ bool cmp(pair<int, double> &a, pair<int, double> &b) { return a.second < b.secon
 double Tri_Mesh::qemCost(const HHandle hhandle) {
 	VertexHandle from = from_vertex_handle(hhandle);
 	VertexHandle to = to_vertex_handle(hhandle);
-	double wa = 3;
-	double wb = 0.1;
+	double wa = 1;
+	double wb = 20;
 	//fij + fjj
 	double fa = getFa(from,to) + getFa(to,to);
 	double fb;
@@ -1632,6 +1632,8 @@ void Tri_Mesh::face2Edge(int faces) {
 		}
 
 		if (is_collapse_ok(hh)) {
+		//if (is_collapse_ok(hh)) {
+
 			VVIter vv_it;
 
 			//cout << "collapse" << endl;
@@ -1703,7 +1705,7 @@ void Tri_Mesh::face2Edge(int faces) {
 
 void Tri_Mesh::getSkeleton() {
 	cout << "get skeleton" << endl;
-	const int smoothTime = 7;
+	const int smoothTime = 5;
 	//model avg area
 	double avgArea;
 	//get avg face area
@@ -1730,7 +1732,7 @@ void Tri_Mesh::getSkeleton() {
 	for (int i = 0; i < _WH.size(); i++)
 		_WH[i] = w0;
 	//WL init
-	_WL = 10;
+	_WL = 5;
 
 	cout << "avg area:" << avgArea << "from " << faceCount << "face, area total" << areaSum << endl;
 
@@ -1744,7 +1746,7 @@ void Tri_Mesh::getSkeleton() {
 			areaSum += area;
 		}
 		cout << "area ratio : " << areaSum / avgArea / faceCount << endl;
-		if (areaSum / avgArea / faceCount < 0.1) {
+		if (areaSum / avgArea / faceCount < 0.4) {
 			cout << "ratio :" << areaSum / avgArea / faceCount << ", stop" << endl;
 			break;
 		}
