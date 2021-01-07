@@ -9,28 +9,16 @@
 
 #include <windows.h>
 #include <gl/gl.h>
+#include <gl/glu.h>
+#include <math.h>
 
-// Include GLM
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include "glm/ext.hpp"
-using namespace glm;
-using namespace std;
-
-
-#include <Eigen/Sparse>
-#include <Eigen/Dense>
-#include <Eigen/LU>
-#include <utility>
-#include <queue>
-#include <unordered_map>
-#include <deque>
-#include <../OpenMesh_EX/Mesh/CustomUtils.h>
-using namespace Eigen;
-
-
-#include <chrono>
-using namespace chrono;
+// #include "ExpMap/myAxisAlignedBox3d.h"
+#ifdef max
+	#undef max
+#endif
+#ifdef min
+	#undef min
+#endif
 
 struct Face_InnerAngle
 {
@@ -239,185 +227,343 @@ class Tri_Mesh:public OMT::Model
 public:
 	Tri_Mesh()
 	{
-		_deque = LogDeque();
-		request_vertex_texcoords2D();
+		add_property(vhandles, "vhandles");
+		add_property(UVSets);
+		add_property(UVSetIndex);
 	}
-
-	~Tri_Mesh()
-	{
-		this->remove_property(cost);
-		this->remove_property(QMat);
-		this->remove_property(newPoint);
-	}
-
-	void loadToBuffer(Tri_Mesh _mesh, std::vector<double> & out_vertices, int & face, std::vector<double> & uv);
-	void loadToBufferPatch(std::vector<double> & out_vertices, int & face, std::vector<int> selected, Tri_Mesh & patch);
-	void findNearestPoint(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex);
-	void findNearestVert(Tri_Mesh mesh, std::vector<double> mouse, int face, std::vector<double> &vertex, mat4 MVP, double dis);
-	void delVert(VHandle vhandle);
-	Matrix4d calculateQ(VertexHandle vhandle);
-
-	void oneRingCollapse(VHandle vhandle);
-	bool DetermineConcaveByTwoPoints(VertexHandle *p1, VertexHandle *p2, Point *np);
-	void normalizeModel();
-
-	void simplify(float rate);
-	//skeleton//
-	float getCot(const HHandle e);
-	double getArea(const FHandle f);
-	void getSkeleton();
-	void face2Edge(int faces);
-
-	Tri_Mesh averageSimplify();
-
 	//-------Edit Flag-------//
-	bool                                       Delete_Flag;
-
+    bool                                       Delete_Flag;
+	
 	int                                        Constrain_num;
-	int                                        Boundary_num;
-	OMT::VHandle                               start_vh, end_vh;
+	int                                        Boundary_num ;
+	OMT::VHandle                               start_vh,end_vh;
 	OMT::VHandle                               ExtremeVh[2];
 	int                                        PatchType;
 
-	std::vector<OMT::VHandle>                  Pluspt;
-	std::vector<OMT::VHandle>                  Minuspt;
-	std::vector<OMT::VHandle>                  Extrme_Pt;
+	std::vector<OMT::VHandle>                  Pluspt      ;
+	std::vector<OMT::VHandle>                  Minuspt     ;
+	std::vector<OMT::VHandle>                  Extrme_Pt   ;
 
-	void getUV(std::vector<double> & patchuv, Tri_Mesh patch, float uvRotateAngle);
+
 	void Render_Solid();
 	void Render_SolidWireframe();
 	void Render_Wireframe();
 	void Render_Point();
-	void Decimate(int k);
-	void Recover(int k);
-	void Initialize();
-	void Update_Edge(EdgeHandle eh);
-	bool equal(Point a, Point b) {
-		if ((a - b).length() < 1e-6) {
-			return true;
-		}
-		return false;
+
+	int Tri_Mesh::findVertex(OMT::Point _p);
+	OMT::VPropHandleT< std::vector<OMT::VHandle> >			vhandles;
+	OpenMesh::VPropHandleT<std::vector<OMT::Vec2d>>			UVSets;
+	OpenMesh::FPropHandleT<int>								UVSetIndex;
+
+	//Exp lib use function
+	static const int InvalidID = -1;
+
+	// 特別的向量
+	static const OMT::Vec3d ZERO;    // (0,0,0)
+	static const OMT::Vec3d UNIT_X;  // (1,0,0)
+	static const OMT::Vec3d UNIT_Y;  // (0,1,0)
+	static const OMT::Vec3d UNIT_Z;  // (0,0,1)
+	static const OMT::Vec3d ONE;     // (1,1,1)
+
+	unsigned int GetVertexCount() {
+		return n_vertices();
+	};
+
+	void GetVertex(int vID, OMT::Point & vVertex, OMT::Normal * pNormal) const
+	{
+		OMT::VHandle vh = vertex_handle(vID);
+		vVertex = point(vh);
+		if (pNormal)
+			*pNormal = normal(vh);
+	};
+
+	void GetNormal(int vID, OMT::Normal & vNormal) {
+		OMT::VHandle vh = vertex_handle(vID);
+		vNormal = normal(vh);
 	}
 
-	bool isFirstLap;
+	void GetTriangle(int tID, int vTriangle[3])
+	{
+		FHandle fh = face_handle(tID);
+		FVIter fv_it = fv_iter(fh);
+		for (int i = 0; fv_it && i < 3; ++fv_it, i++) {
+			int index = fv_it->idx();
 
-private:
-	OpenMesh::EPropHandleT<double> cost;
-	OpenMesh::VPropHandleT<Matrix4d> QMat;
-	OpenMesh::EPropHandleT<Point> newPoint;
-	
-	struct CompareCost {
-		Tri_Mesh* mesh;
-		OpenMesh::EPropHandleT<double>* cost;
-		CompareCost() {
-
-			
+			vTriangle[i] = index;
 		}
+	}
 
-		CompareCost(Tri_Mesh* _mesh, OpenMesh::EPropHandleT<double>* _cost) {
-			mesh = _mesh;
-			cost = _cost;
-		}
-		bool operator()() const
-		{
-			return false;
-		}
+	void GetTriangle(int tID, OMT::Point vTriangle[3], OMT::Normal * pNormals = NULL) {
 
-		bool operator()(const int p1, const int p2) const
-		{
-			auto edgeHandle1 = mesh->edge_handle(p1);
-			auto edgeHandle2 = mesh->edge_handle(p2);
-			return mesh->property(*cost, edgeHandle1) < mesh->property(*cost, edgeHandle2);
-		}
-	};
+		FHandle fh = face_handle(tID);
+		FVIter fv_it = fv_iter(fh);
+		for (int i = 0; fv_it && i < 3; ++fv_it, i++) {
+			OMT::Point p = point(fv_it);
 
-	struct RollbackInfo {
-	public:
-		Point p;
-		vector<Point> neighborPos;  
+			vTriangle[i][0] = p[0];
+			vTriangle[i][1] = p[1];
+			vTriangle[i][2] = p[2];
 
-		RollbackInfo() {}
+			if (pNormals) {
+				OMT::Normal n = normal(fv_it);
 
-		RollbackInfo(int idx, Tri_Mesh* mesh) {
-			p = mesh->point(mesh->vertex_handle(idx));
-			neighborPos = vector<Point>();
-			
-			VertexVertexCCWIter vv_it;
-			for (vv_it = mesh->vv_ccwbegin(mesh->vertex_handle(idx)); vv_it != mesh->vv_ccwend(mesh->vertex_handle(idx)); ++vv_it) {
-				neighborPos.push_back(mesh->point(*vv_it));
+				pNormals[i][0] = n[0];
+				pNormals[i][1] = n[1];
+				pNormals[i][2] = n[2];
 			}
 		}
+	}
 
-	};
+	void GetEdgeLengthStats(double & dMin, double & dMax, double & dAvg)
+	{
+		dMax = std::numeric_limits<double>::min();
+		dMin = std::numeric_limits<double>::max();
+		dAvg = 0;
 
-	struct DecimationLog {
-	public:
-		RollbackInfo* collapsePoint;
-		RollbackInfo* remainPoint;
-		Point remainPointNewPosition;
+		int nCount = 0;
+		FIter curt(faces_begin()), endt(faces_end());
+		while (curt != endt) {
+			int nID = curt->idx();
+			curt++;
+			++nCount;
 
-		DecimationLog(RollbackInfo* info1, RollbackInfo* info2, Point p) {
-			collapsePoint = info1;
-			remainPoint = info2;
-			remainPointNewPosition = p;
+			OMT::Point vVertices[3];
+			GetTriangle(nID, vVertices);
+
+			for (int i = 0; i < 3; ++i) {
+				double dLen = (vVertices[i] - vVertices[(i + 1) % 3]).norm();
+				if (dLen > dMax)
+					dMax = dLen;
+				if (dLen < dMin)
+					dMin = dLen;
+				dAvg += dLen / 3.0;
+			}
 		}
-	};
+		dAvg /= (double)nCount;
+	}
 
-	struct LogDeque {
-	private:
-		deque<DecimationLog*> storage;
-		deque<DecimationLog*> decimated;
+	double GetMaxEdgeLength() {
+		double dMaxEdgeLength = std::numeric_limits<double>::min();
 
-	public:
-		LogDeque() {
-			storage = deque<DecimationLog*>();
-			decimated = deque<DecimationLog*>();
-		}
-	
-		void pushNewLog(DecimationLog* log) {
-			storage.push_front(log);
-		}
+		EIter e_it = edges_begin();
+		for (e_it; e_it != edges_end(); ++e_it) {
+			OMT::HEHandle heh = halfedge_handle(e_it.handle(), 1);
 
-		void printTop() {
-			DecimationLog* log = decimated.front();
-		}
+			OMT::Point from_point = point(from_vertex_handle(heh));
+			OMT::Point to_point = point(to_vertex_handle(heh));
+			OMT::Vec3d temp_vector = to_point - from_point;
 
-		bool canDecimate() {
-			return storage.size() > 0;
-		}
-
-		bool canRecover() {
-			return decimated.size() > 0;
-		}
-
-		DecimationLog* toDecimate() {
-			if (storage.size() == 0) return nullptr;
-			DecimationLog* log = storage.back();
-			storage.pop_back();
-			decimated.push_front(log);
-			// cout << storage.size()<< " " <<decimated.size() << endl;
-			return log;
+			double length = temp_vector.norm();
+			if (length > dMaxEdgeLength)
+				dMaxEdgeLength = length;
 		}
 
-		DecimationLog* toRecover() {
-			if (decimated.size() == 0) return nullptr;
-			DecimationLog* log = decimated.front();
-			decimated.pop_front();
-			storage.push_back(log);
-			// cout << storage.size() << " " << decimated.size() << endl;
-			return log;
+		//std::cout << "dMaxEdgeLength = " << dMaxEdgeLength << std::endl;
+		return dMaxEdgeLength;
+	}
+
+	/*void Union(myAxisAlignedBox3d & dest, const OMT::Point & point)
+	{
+		for (int k = 0; k < 3; ++k) {
+			if (point[k] < dest.Min[k])
+				dest.Min[k] = point[k];
+			if (point[k] > dest.Max[k])
+				dest.Max[k] = point[k];
 		}
-	};
+	}*/
 
-	LogDeque _deque;
-	double w0;
-	double _WL;
-	vector<double> _WH;
-	const double _SL = 1.5;
-	vector<VectorXd> getNewVert(double WL, vector<double> WH);
-	SparseMatrix<double> calculateL();
-	SparseMatrix<double> prepareLaplacian();
+	bool HasUVSet(int nSetID)
+	{
+		return nSetID < property(UVSets, vertices_begin()).size();
+	}
 
+	int AppendUVSet()
+	{
+		//std::cout << "start AppendUVSet" << std::endl;
+
+		for (VIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it)
+		{
+			property(UVSets, v_it).push_back(OMT::Vec2d(-std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()));
+		}
+
+		//std::cout << "end Append UVSet" << std::endl;
+		return property(UVSets, vertices_begin()).size() - 1;
+	}
+
+	void InitializeUVSet(int nSetID)
+	{
+		for (VIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it)
+		{
+			property(UVSets, v_it)[nSetID] = OMT::Vec2d(-std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity());
+		}
+
+	}
+
+	bool GetUV(int vID, int nSetID, OMT::Vec2d & vUV)
+	{
+		OMT::VHandle vh = vertex_handle(vID);
+		if (!vh.is_valid())
+			return false;
+
+		vUV[0] = property(UVSets, vh)[nSetID][0];
+		vUV[1] = property(UVSets, vh)[nSetID][1];
+
+		return true;
+	}
+
+	bool GetTriangleUV(int tID, int nSetID, OMT::Vec2d vUV[3])
+	{
+		int nTri[3];
+		GetTriangle(tID, nTri);
+
+		for (int i = 0; i < 3; i++) {
+			OMT::VHandle vh = vertex_handle(nTri[i]);
+
+			if (!vh.is_valid())
+				return false;
+
+			vUV[i][0] = property(UVSets, vh)[nSetID][0];
+			vUV[i][1] = property(UVSets, vh)[nSetID][1];
+		}
+
+		return true;
+	}
+
+	void SetUV(int vID, int nSetID, const OMT::Vec2d & vUV)
+	{
+		OMT::VHandle vh = vertex_handle(vID);
+
+		property(UVSets, vh)[nSetID][0] = vUV[0];
+		property(UVSets, vh)[nSetID][1] = vUV[1];
+	}
+
+	/*void findNearestVertex(OMT::Point p)
+	{
+		float length = std::numeric_limits<double>::max();
+		for(OMT::VIter v_it = vertices_begin(); v_it != vertices_end(); v_it++)
+	}
+
+	void Lenght*/
+
+	void ClearUVSet(int nSetID)
+	{
+		for (VIter v_it = vertices_begin(); v_it != vertices_end(); ++v_it)
+		{
+			property(UVSets, v_it)[nSetID] = OMT::Vec2d(-std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity());
+		}
+	}
+
+	OMT::Point Tri_Mesh::ClosestPtPointTriangle(FHandle fh, OMT::Point p, double &bu, double &bv, double &bw, double scalar)
+	{
+		int index = 0;
+		OMT::Point fPoints[3];
+
+		for (OMT::FVIter fv_it = fv_iter(fh); fv_it; ++fv_it)
+		{
+			OMT::Point fp = point(fv_it.handle());
+			fPoints[index] = fp * scalar;
+			++index;
+		}
+
+		OMT::Point center = (fPoints[0] + fPoints[1] + fPoints[2]) / 3.0;
+		OMT::Vec3d centerP = p - center;
+		//projection to triangle plane
+		OMT::Normal fn = normal(fh);
+		double len = dot(centerP, fn);
+		OMT::Point projPoint = p - len * fn;
+
+		//calculate distance
+		OMT::Vec3d ab = OMT::Vec3d(fPoints[1] - fPoints[0]);
+		OMT::Vec3d ac = OMT::Vec3d(fPoints[2] - fPoints[0]);
+		OMT::Vec3d bc = OMT::Vec3d(fPoints[2] - fPoints[1]);
+		OMT::Vec3d ap = OMT::Vec3d(projPoint - fPoints[0]);
+		OMT::Vec3d bp = OMT::Vec3d(projPoint - fPoints[1]);
+		OMT::Vec3d cp = OMT::Vec3d(projPoint - fPoints[2]);
+
+		double d1 = dot(ab, ap);
+		double d2 = dot(ac, ap);
+		double d3 = dot(ab, bp);
+		double d4 = dot(ac, bp);
+		double d5 = dot(ab, cp);
+		double d6 = dot(ac, cp);
+
+		double va = d3 * d6 - d5 * d4;
+		double vb = d5 * d2 - d1 * d6;
+		double vc = d1 * d4 - d3 * d2;
+
+		double snom = d1;
+		double sdenom = -d3;
+		double tnom = d2;
+		double tdenom = -d6;
+		double unom = d4 - d3;
+		double udenom = d5 - d6;
+
+		if (d1 <= 0 && d2 <= 0)
+		{
+			bu = 1;
+			bv = 0;
+			bw = 0;
+			return fPoints[0];
+		}
+
+		if (d3 >= 0 && d4 <= d3)
+		{
+			bu = 0;
+			bv = 1;
+			bw = 0;
+			return fPoints[1];
+		}
+
+		if (vc <= 0 && d1 >= 0 && d3 <= 0)
+		{
+			double v = d1 / (d1 - d3);
+			bu = 1 - v;
+			bv = v;
+			bw = 0;
+
+			return fPoints[0] + v * ab;
+		}
+
+		if (d6 >= 0 && d5 <= d6)
+		{
+			bu = 0;
+			bv = 0;
+			bw = 1;
+
+			return fPoints[2];
+		}
+
+		if (vb <= 0 && d2 >= 0 && d6 <= 0)
+		{
+			double w = d2 / (d2 - d6);
+			bu = 1 - w;
+			bv = 0;
+			bw = w;
+
+			return fPoints[0] + w * ac;
+		}
+
+		if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0)
+		{
+			float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+			bu = 0;
+			bv = 1 - w;
+			bw = w;
+
+			return fPoints[1] + w * bc;
+		}
+
+		double denom = 1 / (va + vb + vc);
+		double v = vb * denom;
+		double w = vc * denom;
+
+		bu = 1 - v - w;
+		bv = v;
+		bw = w;
+
+		return fPoints[0] + ab * v + ac * w;
+	}
+private:
 };
 
 ///*======================================================================*/
